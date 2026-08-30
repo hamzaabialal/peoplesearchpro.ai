@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #07080b;
+  --bg-elevated: #0c0e12;
+  --surface: #101318;
+  --surface-2: #161a21;
+  --surface-3: #1c212b;
+  --border: rgba(232, 234, 237, 0.08);
+  --border-strong: rgba(232, 234, 237, 0.14);
+  --text: #e8eaed;
+  --text-muted: #8b929c;
+  --text-faint: #5c6370;
+  --accent: #5b7cff;
+  --accent-2: #7b93ff;
+  --accent-dim: rgba(91, 124, 255, 0.14);
+  --success: #3ddc97;
+  --success-dim: rgba(61, 220, 151, 0.12);
+  --warning: #e8b84a;
+  --warning-dim: rgba(232, 184, 74, 0.12);
+  --danger: #e85d5d;
+  --danger-dim: rgba(232, 93, 93, 0.12);
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --radius: 10px;
+  --sidebar: 248px;
+  --header: 56px;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-dim: var(--accent-dim);
+  --color-success: var(--success);
+  --color-success-dim: var(--success-dim);
+  --color-warning: var(--warning);
+  --color-warning-dim: var(--warning-dim);
+  --color-danger: var(--danger);
+  --color-danger-dim: var(--danger-dim);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-instrument), "Iowan Old Style", Georgia, serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  min-height: 100%;
+}
+
+body {
+  letter-spacing: -0.011em;
+}
+
+::selection {
+  background: var(--accent-dim);
+  color: var(--text);
+}
+
+:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.grid-noise {
+  background-image:
+    linear-gradient(rgba(91, 124, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(91, 124, 255, 0.04) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+.hairline {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes bar {
+  from {
+    width: 0%;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-rise {
+  animation: rise 160ms ease-out;
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+
+@media print {
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
