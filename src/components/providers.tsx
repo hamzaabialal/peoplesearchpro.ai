@@ -12,7 +12,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         {children}
         <CommandPalette />
         <Toaster
-          theme="dark"
+          theme="light"
           position="bottom-right"
           toastOptions={{
             style: {

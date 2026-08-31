@@ -39,7 +39,7 @@ export function PdfDocument({ report }: { report: IntelligenceReport }) {
           </Button>
         </div>
       </div>
-      <article className="mx-auto max-w-[820px] space-y-14 rounded-[4px] border border-border bg-[#0c0e12] p-10 print:max-w-none print:border-0 print:bg-white print:p-0 print:text-black">
+      <article className="mx-auto max-w-[820px] space-y-14 rounded-[4px] border border-border bg-surface p-10 print:max-w-none print:border-0 print:bg-white print:p-0 print:text-black">
         <header>
           <p className="font-mono text-[11px] text-accent-2">
             PeopleSearch Pro · {report.id} · Generated {formatDateTime(report.generatedAt)}

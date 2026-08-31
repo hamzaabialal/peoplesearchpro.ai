@@ -1,26 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #07080b;
-  --bg-elevated: #0c0e12;
-  --surface: #101318;
-  --surface-2: #161a21;
-  --surface-3: #1c212b;
-  --border: rgba(232, 234, 237, 0.08);
-  --border-strong: rgba(232, 234, 237, 0.14);
-  --text: #e8eaed;
-  --text-muted: #8b929c;
-  --text-faint: #5c6370;
-  --accent: #5b7cff;
-  --accent-2: #7b93ff;
-  --accent-dim: rgba(91, 124, 255, 0.14);
-  --success: #3ddc97;
-  --success-dim: rgba(61, 220, 151, 0.12);
-  --warning: #e8b84a;
-  --warning-dim: rgba(232, 184, 74, 0.12);
-  --danger: #e85d5d;
-  --danger-dim: rgba(232, 93, 93, 0.12);
-  --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --bg: #f7f8fa;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f3f4f6;
+  --surface-3: #e8eaee;
+  --border: rgba(9, 11, 15, 0.09);
+  --border-strong: rgba(9, 11, 15, 0.16);
+  --text: #1a1d23;
+  --text-muted: #5c636e;
+  --text-faint: #8b929c;
+  --accent: #4361ee;
+  --accent-2: #5b7cff;
+  --accent-dim: rgba(67, 97, 238, 0.1);
+  --success: #12986a;
+  --success-dim: rgba(18, 152, 106, 0.12);
+  --warning: #b1740c;
+  --warning-dim: rgba(177, 116, 12, 0.12);
+  --danger: #d64242;
+  --danger-dim: rgba(214, 66, 66, 0.1);
+  --shadow: 0 8px 30px rgba(15, 23, 42, 0.1);
   --radius: 10px;
   --sidebar: 248px;
   --header: 56px;
@@ -79,13 +79,13 @@ body {
 
 .grid-noise {
   background-image:
-    linear-gradient(rgba(91, 124, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(91, 124, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(67, 97, 238, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(67, 97, 238, 0.05) 1px, transparent 1px);
   background-size: 64px 64px;
 }
 
 .hairline {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 @keyframes pulse-soft {
