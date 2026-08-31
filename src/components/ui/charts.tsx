@@ -13,11 +13,12 @@ import {
 } from "recharts";
 
 const tooltipStyle = {
-  background: "#161a21",
-  border: "1px solid rgba(232,234,237,0.14)",
+  background: "var(--surface)",
+  border: "1px solid var(--border-strong)",
   borderRadius: 8,
   fontSize: 12,
-  color: "#e8eaed",
+  color: "var(--text)",
+  boxShadow: "var(--shadow)",
 };
 
 export function AreaSeries({
@@ -41,9 +42,9 @@ export function AreaSeries({
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="rgba(232,234,237,0.06)" vertical={false} />
-          <XAxis dataKey={x} tick={{ fill: "#8b929c", fontSize: 11 }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fill: "#8b929c", fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
+          <CartesianGrid stroke="rgba(9,11,15,0.08)" vertical={false} />
+          <XAxis dataKey={x} tick={{ fill: "var(--text-faint)", fontSize: 11 }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fill: "var(--text-faint)", fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
           <Tooltip contentStyle={tooltipStyle} />
           <Area type="monotone" dataKey={y} stroke={color} fill={`url(#g-${y})`} strokeWidth={1.6} />
         </AreaChart>
@@ -67,9 +68,9 @@ export function BarSeries({
     <div className="h-[220px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid stroke="rgba(232,234,237,0.06)" vertical={false} />
-          <XAxis dataKey={x} tick={{ fill: "#8b929c", fontSize: 11 }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fill: "#8b929c", fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
+          <CartesianGrid stroke="rgba(9,11,15,0.08)" vertical={false} />
+          <XAxis dataKey={x} tick={{ fill: "var(--text-faint)", fontSize: 11 }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fill: "var(--text-faint)", fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
           <Tooltip contentStyle={tooltipStyle} />
           <Bar dataKey={y} fill={color} radius={[4, 4, 0, 0]} maxBarSize={28} />
         </BarChart>
