@@ -18,6 +18,7 @@ const tone: Record<string, string> = {
   trial: "accent",
   suspended: "danger",
   past_due: "warning",
+  cancelled: "danger",
 };
 
 export function AdminUsers() {

@@ -41,9 +41,9 @@ export type ContentReviewCategory =
 
 export type PlanId = "starter" | "professional" | "business" | "enterprise";
 
-export type UserStatus = "active" | "trial" | "suspended" | "past_due";
+export type UserStatus = "active" | "trial" | "suspended" | "past_due" | "cancelled";
 
-export type CommissionStatus = "pending" | "approved" | "payable" | "paid";
+export type CommissionStatus = "pending" | "approved" | "payable" | "paid" | "reversed";
 
 export type NotificationKind =
   | "report_completed"
@@ -296,6 +296,10 @@ export interface AdminUser {
   reportsRemaining: number;
   joinedAt: string;
   lastActiveAt: string;
+  clickId: string | null;
+  affiliateId: string | null;
+  subscribedAt: string;
+  cancelledAt: string | null;
 }
 
 export interface AdminReportRow {
@@ -354,6 +358,9 @@ export interface Commission {
   amount: number;
   status: CommissionStatus;
   period: string;
+  clickId: string;
+  affiliateId: string;
+  reversalReason?: string | null;
 }
 
 export interface Payout {
@@ -371,6 +378,42 @@ export interface Campaign {
   clicks: number;
   conversions: number;
   active: boolean;
+}
+
+export type PartnerActivityPeriod = "today" | "yesterday" | "last2days" | "last7days" | "lastMonth";
+
+export interface PartnerActivity {
+  leads: number;
+  conversations: number;
+}
+
+export interface PartnerClient {
+  id: string;
+  name: string;
+  email: string;
+  status: UserStatus;
+  referralLink: string;
+  landingPage: string;
+  joinedAt: string;
+  clicks: number;
+  conversions: number;
+  activity: Record<PartnerActivityPeriod, PartnerActivity>;
+}
+
+export type DeviceType = "Desktop" | "Mobile" | "Tablet";
+
+export interface TrackedLead {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  country: string;
+  state: string;
+  city: string;
+  device: DeviceType;
+  browser: string;
+  affiliateId: string | null;
+  submittedAt: string;
 }
 
 export interface AuditLog {

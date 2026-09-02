@@ -49,6 +49,11 @@ export function greetingForHour(hour = new Date().getHours()) {
   return "Good evening";
 }
 
+export function daysBetween(fromIso: string, toIso: string) {
+  const ms = new Date(toIso).getTime() - new Date(fromIso).getTime();
+  return Math.max(0, Math.round(ms / (1000 * 60 * 60 * 24)));
+}
+
 export function initials(name: string) {
   return name
     .split(" ")
