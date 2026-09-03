@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getAdminSession } from "@/lib/auth/server";
+import { writeAudit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,8 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!(await getAdminSession())) {
+  const admin = await getAdminSession();
+  if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -35,5 +37,8 @@ export async function PATCH(
   if (rows.length === 0) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  await writeAudit(admin.email, "Reversed commission", `COM-${id}`, {
+    reason: reason ?? null,
+  });
   return NextResponse.json({ commission: rows[0] });
 }

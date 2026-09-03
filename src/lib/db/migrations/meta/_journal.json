@@ -43,6 +43,13 @@
       "when": 1788471333882,
       "tag": "0005_gigantic_dragon_man",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788474215982,
+      "tag": "0006_low_talkback",
+      "breakpoints": true
     }
   ]
 }

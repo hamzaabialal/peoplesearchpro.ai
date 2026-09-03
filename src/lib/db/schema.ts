@@ -402,6 +402,31 @@ export const trackedLeads = pgTable("tracked_leads", {
 });
 
 /* -------------------------------------------------------------------------- */
+/* Operations: audit trail + settings                                          */
+/* -------------------------------------------------------------------------- */
+
+export const auditLogs = pgTable("audit_logs", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  actor: text("actor").notNull(), // admin email, or "system"
+  action: text("action").notNull(),
+  target: text("target"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/** Simple key/value store for admin-editable settings. */
+export const settings = pgTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value"),
+  updatedBy: text("updated_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/* -------------------------------------------------------------------------- */
 /* Inferred types                                                              */
 /* -------------------------------------------------------------------------- */
 
@@ -423,3 +448,5 @@ export type Affiliate = typeof affiliates.$inferSelect;
 export type Referral = typeof referrals.$inferSelect;
 export type Commission = typeof commissions.$inferSelect;
 export type TrackedLead = typeof trackedLeads.$inferSelect;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type Setting = typeof settings.$inferSelect;

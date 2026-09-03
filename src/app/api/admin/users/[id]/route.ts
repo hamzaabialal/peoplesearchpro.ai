@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getAdminSession } from "@/lib/auth/server";
+import { writeAudit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -39,5 +40,9 @@ export async function PATCH(
   if (rows.length === 0) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  const user = rows[0] as { email: string; role: string };
+  await writeAudit(admin.email, "Changed user role", `${user.email} → ${role}`, {
+    userId: String(id),
+  });
   return NextResponse.json({ user: rows[0] });
 }
