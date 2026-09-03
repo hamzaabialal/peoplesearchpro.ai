@@ -5,6 +5,7 @@ import { cn, initials } from "@/lib/utils";
 import {
   Activity,
   BadgeDollarSign,
+  Building2,
   ClipboardList,
   Cpu,
   FileText,
@@ -32,6 +33,7 @@ const nav = [
   { href: "/admin/subscriptions", label: "Subscriptions" },
   { href: "/admin/plans", label: "Plans" },
   { href: "/admin/affiliates", label: "Affiliates" },
+  { href: "/admin/clients", label: "Clients" },
   { href: "/admin/providers", label: "Data Sources" },
   { href: "/admin/api-usage", label: "API Usage" },
   { href: "/admin/costs", label: "Costs" },
@@ -48,6 +50,7 @@ const icons: Record<string, React.ComponentType<{ size?: number }>> = {
   "/admin/subscriptions": Receipt,
   "/admin/plans": BadgeDollarSign,
   "/admin/affiliates": Handshake,
+  "/admin/clients": Building2,
   "/admin/providers": Shield,
   "/admin/api-usage": Cpu,
   "/admin/costs": Wallet,
