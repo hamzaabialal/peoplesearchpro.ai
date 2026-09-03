@@ -23,6 +23,16 @@ type Overview = {
   signupsByMonth: { month: string; signups: number }[];
   byPlan: { label: string; amount: number }[];
   byStatus: { label: string; amount: number }[];
+  integrations: {
+    costTracking: { connected: boolean };
+    providers: { name: string; requestsToday: number; errorRate: number }[];
+  };
+  apiSpend: number | null;
+  aiSpend: number | null;
+  avgReportCost: number | null;
+  costByMonth: { month: string; api: number; cost: number }[];
+  failedByMonth: { month: string; failed: number }[];
+  costMix: { label: string; amount: number }[];
 };
 
 export function AdminOverview() {
@@ -53,6 +63,9 @@ export function AdminOverview() {
   }
 
   const t = data.totals;
+  const costOn = data.integrations.costTracking.connected;
+  const hasProviders = data.integrations.providers.length > 0;
+
   const tiles = [
     { k: "Total users", v: formatNumber(t.users) },
     { k: "Active subscribers", v: formatNumber(t.activeSubscribers) },
@@ -62,6 +75,12 @@ export function AdminOverview() {
     { k: "Invoiced (all time)", v: formatCurrency(t.invoicedTotal) },
     { k: "Invoiced this month", v: formatCurrency(t.invoicedThisMonth) },
     { k: "Reports", v: formatNumber(t.reports) },
+  ];
+
+  const costTiles = [
+    { k: "API spend", v: data.apiSpend, on: costOn },
+    { k: "AI spend", v: data.aiSpend, on: costOn },
+    { k: "Avg report cost", v: data.avgReportCost, on: costOn },
   ];
 
   return (
@@ -113,6 +132,95 @@ export function AdminOverview() {
           </div>
         </Card>
       </div>
+
+      <div className="mt-10 flex items-end justify-between">
+        <div>
+          <h2 className="text-[15px] font-medium">Cost &amp; providers</h2>
+          <p className="mt-0.5 text-[12px] text-muted">
+            Populates once a data provider is connected and per-report cost
+            tracking is recorded.
+          </p>
+        </div>
+        <span className="rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[11px] text-muted">
+          {costOn || hasProviders ? "Partially connected" : "Not connected"}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        {costTiles.map((x) => (
+          <Card key={x.k} className="p-4">
+            <p className="text-[11px] uppercase tracking-[0.12em] text-faint">{x.k}</p>
+            {x.on && x.v != null ? (
+              <p className="mt-2 text-[20px] tabular-nums">{formatCurrency(x.v)}</p>
+            ) : (
+              <p className="mt-2 text-[13px] text-faint">No API connected</p>
+            )}
+          </Card>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card className="p-5">
+          <h3 className="text-[13px] font-medium">API spending by month</h3>
+          {costOn ? (
+            <BarSeries data={data.costByMonth} x="month" y="api" />
+          ) : (
+            <Unavailable label="No cost tracking connected" />
+          )}
+        </Card>
+        <Card className="p-5">
+          <h3 className="text-[13px] font-medium">Cost per report</h3>
+          {costOn ? (
+            <AreaSeries data={data.costByMonth} x="month" y="cost" color="#e8b84a" />
+          ) : (
+            <Unavailable label="No cost tracking connected" />
+          )}
+        </Card>
+        <Card className="p-5">
+          <h3 className="text-[13px] font-medium">Provider performance (requests today)</h3>
+          {hasProviders ? (
+            <BarSeries
+              data={data.integrations.providers.map((p) => ({
+                month: p.name.split(" ")[0],
+                requests: p.requestsToday,
+              }))}
+              x="month"
+              y="requests"
+            />
+          ) : (
+            <Unavailable label="No data provider connected" />
+          )}
+        </Card>
+        <Card className="p-5">
+          <h3 className="text-[13px] font-medium">Failed requests by month</h3>
+          {hasProviders ? (
+            <BarSeries data={data.failedByMonth} x="month" y="failed" color="#e85d5d" />
+          ) : (
+            <Unavailable label="No data provider connected" />
+          )}
+        </Card>
+        <Card className="p-5 lg:col-span-2">
+          <h3 className="text-[13px] font-medium">Cost mix per report</h3>
+          <div className="mt-4">
+            {costOn && data.costMix.length ? (
+              <HorizontalBars data={data.costMix} />
+            ) : (
+              <Unavailable label="No cost tracking connected" />
+            )}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function Unavailable({ label }: { label: string }) {
+  return (
+    <div className="mt-2 flex h-[220px] flex-col items-center justify-center rounded-[10px] border border-dashed border-border text-center">
+      <p className="text-[13px] text-muted">{label}</p>
+      <p className="mt-1 text-[11px] text-faint">
+        Data appears here automatically once it&apos;s wired up.
+      </p>
     </div>
   );
 }

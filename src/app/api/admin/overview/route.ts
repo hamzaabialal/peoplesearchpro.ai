@@ -104,6 +104,19 @@ export async function GET() {
       invoicedTotal: invoicedRow[0].total,
       invoicedThisMonth: invoicedRow[0].this_month,
     },
+    // Cost + provider telemetry. These stay empty until a data provider is
+    // connected and per-report cost tracking is recorded; the Overview shows
+    // an "unavailable" state for each while `connected` is false.
+    integrations: {
+      costTracking: { connected: false },
+      providers: [] as { name: string; requestsToday: number; errorRate: number }[],
+    },
+    apiSpend: null as number | null,
+    aiSpend: null as number | null,
+    avgReportCost: null as number | null,
+    costByMonth: months.map((m) => ({ month: m.slice(5), api: 0, cost: 0 })),
+    failedByMonth: months.map((m) => ({ month: m.slice(5), failed: 0 })),
+    costMix: [] as { label: string; amount: number }[],
     revenueByMonth: months.map((m) => ({ month: m.slice(5), revenue: revByMonth.get(m) ?? 0 })),
     signupsByMonth: months.map((m) => ({ month: m.slice(5), signups: signupByMonth.get(m) ?? 0 })),
     byPlan: ["starter", "professional", "business", "enterprise"]
