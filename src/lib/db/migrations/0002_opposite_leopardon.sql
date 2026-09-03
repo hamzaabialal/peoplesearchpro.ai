@@ -1,0 +1,2 @@
+ALTER TABLE "signups" DROP CONSTRAINT "signups_role_check";--> statement-breakpoint
+ALTER TABLE "signups" ADD CONSTRAINT "signups_role_check" CHECK ("signups"."role" in ('customer', 'partner', 'admin'));

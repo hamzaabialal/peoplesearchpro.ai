@@ -11,6 +11,7 @@ import {
   validatePassword,
 } from "@/lib/validation/signup";
 import { showErrorToast } from "@/lib/toast";
+import { dashboardPath } from "@/lib/auth/roles";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -73,7 +74,7 @@ export default function SignupPage() {
             }
 
             toast.success("Account created");
-            router.push("/app");
+            router.push(dashboardPath(data.user?.role));
             router.refresh();
           } catch {
             showErrorToast(

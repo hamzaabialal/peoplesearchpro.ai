@@ -7,6 +7,7 @@ import { showErrorToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { validatePassword } from "@/lib/validation/login";
 import { validateEmail } from "@/lib/validation/signup";
+import { dashboardPath } from "@/lib/auth/roles";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -61,7 +62,7 @@ export default function LoginPage() {
 
             toast.success("Signed in");
             const next = new URLSearchParams(window.location.search).get("next");
-            const fallback = data.user?.role === "partner" ? "/partner" : "/app";
+            const fallback = dashboardPath(data.user?.role);
             router.push(next && next.startsWith("/") ? next : fallback);
             router.refresh();
           } catch {

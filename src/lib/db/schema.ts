@@ -294,7 +294,9 @@ export const signups = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [check("signups_role_check", sql`${t.role} in ('customer', 'partner')`)],
+  (t) => [
+    check("signups_role_check", sql`${t.role} in ('customer', 'partner', 'admin')`),
+  ],
 );
 
 /* -------------------------------------------------------------------------- */

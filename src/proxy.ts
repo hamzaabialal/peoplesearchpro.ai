@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
+import { dashboardPath } from "@/lib/auth/roles";
 
 /** Route groups that require a signed-in session. */
 const PROTECTED = ["/app", "/admin", "/partner"];
@@ -28,9 +29,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isAuthPage && session) {
-    return NextResponse.redirect(
-      new URL(session.role === "partner" ? "/partner" : "/app", request.url),
-    );
+    return NextResponse.redirect(new URL(dashboardPath(session.role), request.url));
   }
 
   return NextResponse.next();
