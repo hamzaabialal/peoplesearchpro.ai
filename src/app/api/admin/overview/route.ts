@@ -57,7 +57,8 @@ export async function GET() {
       SELECT to_char(date_trunc('month', issued_at), 'YYYY-MM') AS month,
              sum(amount)::float AS revenue
       FROM invoices
-      WHERE issued_at >= date_trunc('month', now()) - interval '5 months'
+      WHERE status = 'paid'
+        AND issued_at >= date_trunc('month', now()) - interval '5 months'
       GROUP BY 1
     `,
     sql`

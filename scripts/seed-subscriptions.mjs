@@ -15,7 +15,8 @@ if (!process.env.DATABASE_URL) {
 const sql = neon(process.env.DATABASE_URL);
 
 const planByRole = { admin: "business", partner: "professional", customer: "starter" };
-const priceByPlan = { starter: "29.00", professional: "99.00", business: "299.00", enterprise: "0.00" };
+// Matches the pricing catalogue in src/lib/data/mock.ts.
+const priceByPlan = { starter: "49.00", professional: "149.00", business: "399.00", enterprise: "0.00" };
 // A deterministic-ish status spread so filters have something to filter.
 const statuses = ["active", "active", "trialing", "past_due", "canceled"];
 
@@ -41,18 +42,17 @@ for (const [i, u] of users.entries()) {
   `;
   subs++;
 
-  const existing = await sql`select count(*)::int n from invoices where user_id = ${u.id}`;
-  if (existing[0].n === 0) {
-    const amount = priceByPlan[plan] ?? "29.00";
-    for (let m = 0; m < 3; m++) {
-      const issued = new Date(Date.now() - m * 30 * 24 * 3600 * 1000).toISOString();
-      const st = m === 0 && status === "past_due" ? "open" : "paid";
-      await sql`
-        INSERT INTO invoices (user_id, amount, currency, status, issued_at)
-        VALUES (${u.id}, ${amount}, 'usd', ${st}, ${issued})
-      `;
-      invs++;
-    }
+  // Rebuild this user's invoices so amounts always match the current catalogue.
+  await sql`DELETE FROM invoices WHERE user_id = ${u.id}`;
+  const amount = priceByPlan[plan] ?? "49.00";
+  for (let m = 0; m < 3; m++) {
+    const issued = new Date(Date.now() - m * 30 * 24 * 3600 * 1000).toISOString();
+    const st = m === 0 && status === "past_due" ? "open" : "paid";
+    await sql`
+      INSERT INTO invoices (user_id, amount, currency, status, issued_at)
+      VALUES (${u.id}, ${amount}, 'usd', ${st}, ${issued})
+    `;
+    invs++;
   }
 }
 
