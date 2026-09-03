@@ -1,8 +1,11 @@
 "use client";
 
+import { Menu } from "@/components/ui/menu";
+import { UserAvatar } from "@/components/user-avatar";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { affiliateStats } from "@/lib/data/mock";
 import { cn, formatCurrency } from "@/lib/utils";
-import { Handshake, Menu, X } from "lucide-react";
+import { Handshake, Menu as MenuIcon, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -20,6 +23,19 @@ const nav = [
 export function PartnerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { user } = useCurrentUser();
+
+  const profileItems = [
+    { label: "Settings", href: "/partner/settings" },
+    { label: "Sign out", href: "/api/logout", danger: true },
+  ];
+  const profileHeader = (
+    <div className="min-w-0">
+      <p className="truncate text-text">{user?.name || "Account"}</p>
+      <p className="truncate">{user?.email ?? "—"}</p>
+    </div>
+  );
+
   return (
     <div className="flex min-h-screen bg-bg">
       <aside className="sticky top-0 hidden h-screen w-[248px] flex-col border-r border-border bg-bg-elevated md:flex">
@@ -49,6 +65,25 @@ export function PartnerShell({ children }: { children: React.ReactNode }) {
           <p className="text-[10px] uppercase tracking-[0.12em] text-faint">Paid to date</p>
           <p className="mt-1 text-[18px]">{formatCurrency(affiliateStats.paid)}</p>
         </div>
+        <div className="border-t border-border p-3">
+          <Menu
+            header={profileHeader}
+            items={profileItems}
+            trigger={
+              <button className="flex w-full items-center gap-2.5 rounded-[10px] p-1.5 text-left hover:bg-surface-2">
+                <UserAvatar name={user?.name} email={user?.email} image={user?.image} size={32} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] text-text">
+                    {user?.name || "Account"}
+                  </span>
+                  <span className="block truncate text-[11px] text-muted">
+                    {user?.email ?? "—"}
+                  </span>
+                </span>
+              </button>
+            }
+          />
+        </div>
       </aside>
       {open ? (
         <div className="fixed inset-0 z-40 md:hidden">
@@ -68,12 +103,29 @@ export function PartnerShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 items-center gap-3 border-b border-border px-4">
           <button className="md:hidden" onClick={() => setOpen(true)}>
-            <Menu size={18} />
+            <MenuIcon size={18} />
           </button>
           <p className="text-[13px] text-muted">Affiliate workspace</p>
           <Link href="/app" className="ml-auto text-[12px] text-accent-2">
             Back to product
           </Link>
+          <Menu
+            header={profileHeader}
+            items={profileItems}
+            trigger={
+              <button
+                className="flex items-center rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-accent"
+                aria-label="Account menu"
+              >
+                <UserAvatar
+                  name={user?.name}
+                  email={user?.email}
+                  image={user?.image}
+                  size={32}
+                />
+              </button>
+            }
+          />
         </header>
         <main className="p-4 md:p-6 lg:p-8">{children}</main>
       </div>

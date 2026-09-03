@@ -2,8 +2,10 @@
 
 import { Menu } from "@/components/ui/menu";
 import { Tooltip } from "@/components/ui/tooltip";
+import { UserAvatar } from "@/components/user-avatar";
+import { useCurrentUser, type CurrentUser } from "@/hooks/use-current-user";
 import { currentUser, notifications } from "@/lib/data/mock";
-import { cn, initials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import {
   Bell,
   CircleHelp,
@@ -43,6 +45,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const crumbs = useMemo(() => breadcrumbs(pathname), [pathname]);
+  const { user } = useCurrentUser();
+
+  const profileHeader = (
+    <div className="min-w-0">
+      <p className="truncate text-text">{user?.name || "Account"}</p>
+      <p className="truncate">{user?.email ?? "—"}</p>
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen bg-bg">
@@ -96,7 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </p>
             </div>
           ) : null}
-          <ProfileBlock collapsed={collapsed} />
+          <ProfileBlock collapsed={collapsed} user={user} />
         </div>
       </aside>
 
@@ -178,15 +188,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <CircleHelp size={16} />
             </Link>
             <Menu
+              header={profileHeader}
               trigger={
-                <button className="ml-1 flex h-8 w-8 items-center justify-center rounded-full bg-surface-3 text-[11px] font-medium">
-                  {initials(currentUser.name)}
+                <button
+                  className="ml-1 flex items-center rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-accent"
+                  aria-label="Account menu"
+                >
+                  <UserAvatar
+                    name={user?.name}
+                    email={user?.email}
+                    image={user?.image}
+                    size={32}
+                  />
                 </button>
               }
               items={[
                 { label: "Profile", href: "/app/settings" },
                 { label: "Billing", href: "/app/billing" },
-                { label: "Sign out", href: "/api/logout" },
+                { label: "Sign out", href: "/api/logout", danger: true },
               ]}
             />
           </div>
@@ -218,24 +237,55 @@ function Brand({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-function ProfileBlock({ collapsed }: { collapsed: boolean }) {
+function ProfileBlock({
+  collapsed,
+  user,
+}: {
+  collapsed: boolean;
+  user: CurrentUser | null;
+}) {
+  const menu = (trigger: React.ReactNode) => (
+    <Menu
+      header={
+        <div className="min-w-0">
+          <p className="truncate text-text">{user?.name || "Account"}</p>
+          <p className="truncate">{user?.email ?? "—"}</p>
+        </div>
+      }
+      items={[
+        { label: "Profile", href: "/app/settings" },
+        { label: "Billing", href: "/app/billing" },
+        { label: "Sign out", href: "/api/logout", danger: true },
+      ]}
+      trigger={trigger}
+    />
+  );
+
   if (collapsed) {
     return (
-      <div className="flex justify-center text-[11px] font-medium">
-        {initials(currentUser.name)}
+      <div className="flex justify-center">
+        {menu(
+          <button aria-label="Account menu" className="outline-none">
+            <UserAvatar
+              name={user?.name}
+              email={user?.email}
+              image={user?.image}
+              size={28}
+            />
+          </button>,
+        )}
       </div>
     );
   }
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-3 text-[11px]">
-        {initials(currentUser.name)}
-      </div>
-      <div className="min-w-0">
-        <p className="truncate text-[13px]">{currentUser.name}</p>
-        <p className="truncate text-[11px] text-muted">{currentUser.email}</p>
-      </div>
-    </div>
+
+  return menu(
+    <button className="flex w-full items-center gap-2.5 rounded-[10px] p-1 text-left outline-none hover:bg-surface-2">
+      <UserAvatar name={user?.name} email={user?.email} image={user?.image} size={32} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px]">{user?.name || "Account"}</span>
+        <span className="block truncate text-[11px] text-muted">{user?.email ?? "—"}</span>
+      </span>
+    </button>,
   );
 }
 

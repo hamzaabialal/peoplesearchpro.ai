@@ -13,7 +13,7 @@ export async function GET() {
 
   try {
     const rows = await sql`
-      SELECT id, name, email, role, created_at FROM signups WHERE id = ${session.sub} LIMIT 1
+      SELECT id, name, email, role, image, created_at FROM signups WHERE id = ${session.sub} LIMIT 1
     `;
     const user = rows[0];
     if (!user) return NextResponse.json({ user: null }, { status: 401 });

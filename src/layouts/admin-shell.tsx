@@ -1,7 +1,9 @@
 "use client";
 
-import { currentUser } from "@/lib/data/mock";
-import { cn, initials } from "@/lib/utils";
+import { Menu } from "@/components/ui/menu";
+import { UserAvatar } from "@/components/user-avatar";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { cn } from "@/lib/utils";
 import {
   Activity,
   BadgeDollarSign,
@@ -62,6 +64,19 @@ const icons: Record<string, React.ComponentType<{ size?: number }>> = {
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { user } = useCurrentUser();
+
+  const profileItems = [
+    { label: "Settings", href: "/admin/settings" },
+    { label: "Sign out", href: "/api/logout", danger: true },
+  ];
+  const profileHeader = (
+    <div className="min-w-0">
+      <p className="truncate text-text">{user?.name || "Account"}</p>
+      <p className="truncate">{user?.email ?? "—"}</p>
+    </div>
+  );
+
   return (
     <div className="flex min-h-screen bg-bg">
       <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-border bg-bg-elevated md:flex">
@@ -94,9 +109,24 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="border-t border-border p-4 text-[12px] text-muted">
-          Signed in as operator
-          <div className="mt-1 text-text">{currentUser.email}</div>
+        <div className="border-t border-border p-3">
+          <Menu
+            header={profileHeader}
+            items={profileItems}
+            trigger={
+              <button className="flex w-full items-center gap-2.5 rounded-[10px] p-1.5 text-left hover:bg-surface-2">
+                <UserAvatar name={user?.name} email={user?.email} image={user?.image} size={32} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] text-text">
+                    {user?.name || "Account"}
+                  </span>
+                  <span className="block truncate text-[11px] text-muted">
+                    {user?.email ?? "—"}
+                  </span>
+                </span>
+              </button>
+            }
+          />
         </div>
       </aside>
       {open ? (
@@ -127,8 +157,24 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <p className="text-[12px] uppercase tracking-[0.16em] text-faint">
             Control center
           </p>
-          <div className="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-surface-3 text-[11px]">
-            {initials("Ops Admin")}
+          <div className="ml-auto">
+            <Menu
+              header={profileHeader}
+              items={profileItems}
+              trigger={
+                <button
+                  className="flex items-center rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-accent"
+                  aria-label="Account menu"
+                >
+                  <UserAvatar
+                    name={user?.name}
+                    email={user?.email}
+                    image={user?.image}
+                    size={32}
+                  />
+                </button>
+              }
+            />
           </div>
         </header>
         <main className="p-4 md:p-6 lg:p-8">{children}</main>

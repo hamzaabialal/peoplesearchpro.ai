@@ -290,6 +290,8 @@ export const signups = pgTable(
     email: text("email").notNull().unique(),
     passwordHash: text("password_hash").notNull(),
     role: text("role").notNull(),
+    /** Optional avatar URL; when null the UI falls back to initials. */
+    image: text("image"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
