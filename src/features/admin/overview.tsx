@@ -3,31 +3,65 @@
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { AreaSeries, BarSeries, HorizontalBars } from "@/components/ui/charts";
-import { formatCurrency } from "@/lib/utils";
-import { adminOpsService } from "@/lib/services";
-import { perReportCosts, providers } from "@/lib/data/mock";
+import { formatCurrency, formatNumber } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
+type Overview = {
+  totals: {
+    users: number;
+    activeSubscribers: number;
+    pastDue: number;
+    canceled: number;
+    mrr: number;
+    reports: number;
+    reportsThisMonth: number;
+    reportsToday: number;
+    invoicedTotal: number;
+    invoicedThisMonth: number;
+  };
+  revenueByMonth: { month: string; revenue: number }[];
+  signupsByMonth: { month: string; signups: number }[];
+  byPlan: { label: string; amount: number }[];
+  byStatus: { label: string; amount: number }[];
+};
+
 export function AdminOverview() {
-  const [m, setM] = useState<Awaited<ReturnType<typeof adminOpsService.metrics>> | null>(null);
+  const [data, setData] = useState<Overview | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    adminOpsService.metrics().then(setM);
+    fetch("/api/admin/overview")
+      .then(async (r) => {
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? "Failed to load");
+        return r.json();
+      })
+      .then(setData)
+      .catch((e) => setError(e.message));
   }, []);
 
-  if (!m) {
-    return <div className="h-64 animate-pulse rounded-[12px] bg-surface" />;
+  if (error) {
+    return (
+      <div>
+        <PageHeader kicker="Operations" title="Overview" />
+        <p className="mt-8 text-[13px] text-danger">{error}</p>
+      </div>
+    );
   }
 
-  const metrics = [
-    { k: "Total users", v: String(m.totalUsers) },
-    { k: "Active subscribers", v: String(m.activeSubscribers) },
-    { k: "Reports today", v: String(m.reportsToday) },
-    { k: "Reports this month", v: String(m.reportsMonth) },
-    { k: "API spend", v: formatCurrency(m.apiSpend) },
-    { k: "AI spend", v: formatCurrency(m.aiSpend) },
-    { k: "Avg report cost", v: formatCurrency(m.avgReportCost) },
-    { k: "MRR", v: formatCurrency(m.mrr) },
+  if (!data) {
+    return <div className="mt-8 h-64 animate-pulse rounded-[12px] bg-surface" />;
+  }
+
+  const t = data.totals;
+  const tiles = [
+    { k: "Total users", v: formatNumber(t.users) },
+    { k: "Active subscribers", v: formatNumber(t.activeSubscribers) },
+    { k: "Past due", v: formatNumber(t.pastDue) },
+    { k: "Canceled", v: formatNumber(t.canceled) },
+    { k: "MRR", v: formatCurrency(t.mrr) },
+    { k: "Invoiced (all time)", v: formatCurrency(t.invoicedTotal) },
+    { k: "Invoiced this month", v: formatCurrency(t.invoicedThisMonth) },
+    { k: "Reports", v: formatNumber(t.reports) },
   ];
 
   return (
@@ -35,49 +69,47 @@ export function AdminOverview() {
       <PageHeader
         kicker="Operations"
         title="Overview"
-        subtitle="Live control-center metrics for the demonstration environment."
+        subtitle="Live from the database."
       />
+
       <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {metrics.map((x) => (
+        {tiles.map((x) => (
           <Card key={x.k} className="p-4">
             <p className="text-[11px] uppercase tracking-[0.12em] text-faint">{x.k}</p>
             <p className="mt-2 text-[20px] tabular-nums">{x.v}</p>
           </Card>
         ))}
       </div>
+
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card className="p-5">
-          <h2 className="text-[13px] font-medium">Reports over time</h2>
-          <AreaSeries data={m.series} x="month" y="reports" />
+          <h2 className="text-[13px] font-medium">Revenue by month</h2>
+          <p className="mt-0.5 text-[11px] text-muted">Paid invoices, last 6 months</p>
+          <AreaSeries data={data.revenueByMonth} x="month" y="revenue" color="#3ddc97" />
         </Card>
         <Card className="p-5">
-          <h2 className="text-[13px] font-medium">Revenue</h2>
-          <AreaSeries data={m.series} x="month" y="revenue" color="#3ddc97" />
+          <h2 className="text-[13px] font-medium">New signups by month</h2>
+          <p className="mt-0.5 text-[11px] text-muted">Last 6 months</p>
+          <BarSeries data={data.signupsByMonth} x="month" y="signups" />
         </Card>
         <Card className="p-5">
-          <h2 className="text-[13px] font-medium">API spending</h2>
-          <BarSeries data={m.series} x="month" y="api" />
-        </Card>
-        <Card className="p-5">
-          <h2 className="text-[13px] font-medium">Cost per report</h2>
-          <AreaSeries data={m.series} x="month" y="cost" color="#e8b84a" />
-        </Card>
-        <Card className="p-5">
-          <h2 className="text-[13px] font-medium">Provider performance (requests today)</h2>
-          <BarSeries
-            data={providers.map((p) => ({ month: p.name.split(" ")[0], reports: p.requestsToday }))}
-            x="month"
-            y="reports"
-          />
-        </Card>
-        <Card className="p-5">
-          <h2 className="text-[13px] font-medium">Failed requests</h2>
-          <BarSeries data={m.series} x="month" y="failed" color="#e85d5d" />
-        </Card>
-        <Card className="p-5 lg:col-span-2">
-          <h2 className="text-[13px] font-medium">Typical cost mix</h2>
+          <h2 className="text-[13px] font-medium">Subscriptions by plan</h2>
           <div className="mt-4">
-            <HorizontalBars data={perReportCosts} />
+            {data.byPlan.length ? (
+              <HorizontalBars data={data.byPlan} />
+            ) : (
+              <p className="text-[12px] text-muted">No subscriptions yet.</p>
+            )}
+          </div>
+        </Card>
+        <Card className="p-5">
+          <h2 className="text-[13px] font-medium">Subscriptions by status</h2>
+          <div className="mt-4">
+            {data.byStatus.length ? (
+              <HorizontalBars data={data.byStatus} />
+            ) : (
+              <p className="text-[12px] text-muted">No subscriptions yet.</p>
+            )}
           </div>
         </Card>
       </div>
