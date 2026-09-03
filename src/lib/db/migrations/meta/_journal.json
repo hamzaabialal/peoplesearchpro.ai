@@ -8,6 +8,13 @@
       "when": 1788434527535,
       "tag": "0000_steady_shockwave",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788458663598,
+      "tag": "0001_minor_strong_guy",
+      "breakpoints": true
     }
   ]
 }

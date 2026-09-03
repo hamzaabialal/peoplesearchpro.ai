@@ -11,8 +11,11 @@
  * - Money is `numeric(12,2)`; confidence/probability scores are `doublePrecision`
  *   in the 0..1 range.
  */
+import { sql } from "drizzle-orm";
 import {
+  bigserial,
   boolean,
+  check,
   doublePrecision,
   integer,
   jsonb,
@@ -272,6 +275,29 @@ export const sources = pgTable("sources", {
 });
 
 /* -------------------------------------------------------------------------- */
+/* Signups — credentials for the /api/signup + /api/login flow                 */
+/*                                                                            */
+/* Kept separate from `users` (which models a provisioned customer/admin/      */
+/* partner account): a signup is just "someone made an account with an email   */
+/* and password". Promote a signup into `users` when they first pay / onboard. */
+/* -------------------------------------------------------------------------- */
+
+export const signups = pgTable(
+  "signups",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    passwordHash: text("password_hash").notNull(),
+    role: text("role").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [check("signups_role_check", sql`${t.role} in ('customer', 'partner')`)],
+);
+
+/* -------------------------------------------------------------------------- */
 /* Inferred types                                                              */
 /* -------------------------------------------------------------------------- */
 
@@ -287,3 +313,5 @@ export type SourceRow = typeof sources.$inferSelect;
 export type NewSource = typeof sources.$inferInsert;
 export type Invoice = typeof invoices.$inferSelect;
 export type Subscription = typeof subscriptions.$inferSelect;
+export type Signup = typeof signups.$inferSelect;
+export type NewSignup = typeof signups.$inferInsert;

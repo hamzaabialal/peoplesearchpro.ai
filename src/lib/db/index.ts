@@ -24,7 +24,13 @@ if (!connectionString) {
   );
 }
 
-export const db = drizzle({ client: neon(connectionString), schema });
+/**
+ * Raw tagged-template SQL client, for code that wants plain SQL instead of the
+ * query builder (e.g. the auth routes). Same connection, same pool semantics.
+ */
+export const sql = neon(connectionString);
+
+export const db = drizzle({ client: sql, schema });
 
 export { schema };
 export * from "./schema";
