@@ -13,6 +13,7 @@
  */
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   bigserial,
   boolean,
   check,
@@ -111,9 +112,10 @@ export const users = pgTable("users", {
 
 export const subscriptions = pgTable("subscriptions", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
+  // The account this subscription belongs to (signups is the user table).
+  userId: bigint("user_id", { mode: "number" })
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .references(() => signups.id, { onDelete: "cascade" }),
   plan: planId("plan").notNull(),
   status: subscriptionStatus("status").notNull().default("active"),
   stripeSubscriptionId: text("stripe_subscription_id").unique(),
@@ -125,9 +127,9 @@ export const subscriptions = pgTable("subscriptions", {
 
 export const invoices = pgTable("invoices", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
+  userId: bigint("user_id", { mode: "number" })
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .references(() => signups.id, { onDelete: "cascade" }),
   stripeInvoiceId: text("stripe_invoice_id").unique(),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   currency: text("currency").notNull().default("usd"),

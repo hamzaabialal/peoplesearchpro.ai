@@ -32,3 +32,9 @@ export async function getSession(): Promise<SessionPayload | null> {
   const jar = await cookies();
   return verifySession(jar.get(SESSION_COOKIE)?.value);
 }
+
+/** Returns the session only if it belongs to an admin, else null. */
+export async function getAdminSession(): Promise<SessionPayload | null> {
+  const session = await getSession();
+  return session?.role === "admin" ? session : null;
+}
