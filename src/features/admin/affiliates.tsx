@@ -4,18 +4,60 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
-import {
-  adminUsers,
-  affiliateStats,
-  commissions as initialCommissions,
-  partnerClients,
-  referrals,
-  trackedLeads,
-} from "@/lib/data/mock";
-import type { Commission } from "@/types";
-import { cn, daysBetween, formatCurrency, formatDateTime } from "@/lib/utils";
-import { useMemo, useState } from "react";
+import { cn, formatCurrency, formatDateTime } from "@/lib/utils";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+
+type Affiliate = {
+  id: string;
+  name: string;
+  email: string;
+  refCode: string;
+  referralLink: string;
+  landingPage: string | null;
+  status: string;
+  clicks: number;
+  conversions: number;
+  joinedAt: string;
+};
+type Lead = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  device: string | null;
+  browser: string | null;
+  submittedAt: string;
+  affiliate: { id: string; name: string; code: string } | null;
+};
+type Referral = {
+  id: string;
+  customer: string;
+  plan: string;
+  status: string;
+  affiliate: string;
+  commission: number;
+};
+type Commission = {
+  id: string;
+  referral: string;
+  clickId: string | null;
+  affiliate: string;
+  amount: number;
+  status: string;
+  reversalReason: string | null;
+  eligibleDays: number | null;
+};
+type Payload = {
+  stats: { clicks: number; signups: number; conversions: number; activeSubscribers: number };
+  affiliates: Affiliate[];
+  trackedLeads: Lead[];
+  referrals: Referral[];
+  commissions: Commission[];
+};
 
 const tone: Record<string, string> = {
   active: "success",
@@ -24,7 +66,6 @@ const tone: Record<string, string> = {
   past_due: "warning",
   cancelled: "danger",
 };
-
 const commissionTone: Record<string, string> = {
   pending: "warning",
   approved: "accent",
@@ -33,103 +74,129 @@ const commissionTone: Record<string, string> = {
   reversed: "danger",
 };
 
-const affiliateById = new Map(partnerClients.map((a) => [a.id, a]));
-const userByClickId = new Map(adminUsers.filter((u) => u.clickId).map((u) => [u.clickId!, u]));
-
-function reversalEligibility(commission: Commission) {
-  const user = userByClickId.get(commission.clickId);
-  if (!user?.cancelledAt) return null;
-  const days = daysBetween(user.subscribedAt, user.cancelledAt);
-  if (days <= 30) return days;
-  return null;
-}
-
 export function AdminAffiliates() {
   const [nameFilter, setNameFilter] = useState("");
-  const [idFilter, setIdFilter] = useState("");
+  const [codeFilter, setCodeFilter] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
-  const [commissions, setCommissions] = useState<Commission[]>(initialCommissions);
+  const [data, setData] = useState<Payload | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const markReversed = (id: string) => {
-    setCommissions((rows) =>
-      rows.map((c) =>
-        c.id === id
-          ? {
-              ...c,
-              status: "reversed",
-              reversalReason: c.reversalReason ?? "Cancelled within the reversal window — reversed by admin.",
-            }
-          : c,
-      ),
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [f, setF] = useState({ name: "", code: "", email: "" });
+  useEffect(() => {
+    if (debounce.current) clearTimeout(debounce.current);
+    debounce.current = setTimeout(
+      () => setF({ name: nameFilter.trim(), code: codeFilter.trim(), email: emailFilter.trim() }),
+      300,
     );
-    toast.success(`${id} marked as reversed`);
-  };
+    return () => {
+      if (debounce.current) clearTimeout(debounce.current);
+    };
+  }, [nameFilter, codeFilter, emailFilter]);
 
-  const filteredAffiliates = useMemo(() => {
-    const name = nameFilter.trim().toLowerCase();
-    const id = idFilter.trim().toLowerCase();
-    const email = emailFilter.trim().toLowerCase();
-    return partnerClients.filter(
-      (a) =>
-        a.name.toLowerCase().includes(name) &&
-        a.id.toLowerCase().includes(id) &&
-        a.email.toLowerCase().includes(email),
+  const load = useCallback(() => {
+    const p = new URLSearchParams();
+    if (f.name) p.set("name", f.name);
+    if (f.code) p.set("code", f.code);
+    if (f.email) p.set("email", f.email);
+    fetch(`/api/admin/affiliates?${p}`)
+      .then(async (r) => {
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? "Failed to load");
+        return r.json();
+      })
+      .then(setData)
+      .catch((e) => setError(e.message));
+  }, [f]);
+
+  useEffect(load, [load]);
+
+  async function markReversed(id: string) {
+    try {
+      const res = await fetch(`/api/admin/commissions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "reversed" }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Failed");
+      toast.success(`${id} marked as reversed`);
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    }
+  }
+
+  const filtersActive = useMemo(
+    () => !!(f.name || f.code || f.email),
+    [f],
+  );
+
+  if (error) {
+    return (
+      <div>
+        <PageHeader title="Affiliates" />
+        <p className="mt-8 text-[13px] text-danger">{error}</p>
+      </div>
     );
-  }, [nameFilter, idFilter, emailFilter]);
+  }
+  if (!data) {
+    return <div className="mt-8 h-64 animate-pulse rounded-[12px] bg-surface" />;
+  }
 
   return (
     <div>
       <PageHeader
         title="Affiliates"
-        subtitle="Partner performance. Referred customers are privacy-safe labels only."
+        subtitle="Partner performance, live from the database. Referred customers are privacy-safe labels only."
       />
+
       <div className="mt-8 grid gap-3 sm:grid-cols-4">
         {[
-          ["Clicks", affiliateStats.clicks],
-          ["Signups", affiliateStats.signups],
-          ["Conversions", affiliateStats.conversions],
-          ["Active subscribers", affiliateStats.activeSubscribers],
+          ["Clicks", data.stats.clicks],
+          ["Referred signups", data.stats.signups],
+          ["Conversions", data.stats.conversions],
+          ["Active subscribers", data.stats.activeSubscribers],
         ].map(([k, v]) => (
           <Card key={String(k)} className="p-4">
             <p className="text-[11px] uppercase tracking-[0.12em] text-faint">{k}</p>
-            <p className="mt-2 text-[20px]">{v}</p>
+            <p className="mt-2 text-[20px] tabular-nums">{v}</p>
           </Card>
         ))}
       </div>
 
       <div className="mt-8">
-        <h2 className="text-[13px] font-medium mb-4">Affiliate directory</h2>
+        <h2 className="mb-4 text-[13px] font-medium">Affiliate directory</h2>
         <Card className="p-4">
           <div className="grid gap-3 sm:grid-cols-3">
             <Field label="Filter by name">
-              <Input
-                value={nameFilter}
-                onChange={(e) => setNameFilter(e.target.value)}
-                placeholder="e.g. Alexandra"
-              />
+              <Input value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} placeholder="e.g. Northline" />
             </Field>
-            <Field label="Filter by ID">
-              <Input
-                value={idFilter}
-                onChange={(e) => setIdFilter(e.target.value)}
-                placeholder="e.g. prt_reyes"
-              />
+            <Field label="Filter by code">
+              <Input value={codeFilter} onChange={(e) => setCodeFilter(e.target.value)} placeholder="e.g. bell" />
             </Field>
             <Field label="Filter by email">
-              <Input
-                value={emailFilter}
-                onChange={(e) => setEmailFilter(e.target.value)}
-                placeholder="e.g. northline.example"
-              />
+              <Input value={emailFilter} onChange={(e) => setEmailFilter(e.target.value)} placeholder="e.g. northline.example" />
             </Field>
           </div>
+          {filtersActive ? (
+            <button
+              type="button"
+              className="mt-2 text-[12px] text-accent-2"
+              onClick={() => {
+                setNameFilter("");
+                setCodeFilter("");
+                setEmailFilter("");
+              }}
+            >
+              Clear filters
+            </button>
+          ) : null}
         </Card>
         <Card className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-[13px]">
+          <table className="w-full min-w-[820px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-border text-[11px] uppercase tracking-[0.1em] text-faint">
-                <th className="px-4 py-3">Affiliate name</th>
-                <th className="px-4 py-3">ID</th>
+                <th className="px-4 py-3">Affiliate</th>
+                <th className="px-4 py-3">Code</th>
                 <th className="px-4 py-3">Email</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Clicks</th>
@@ -137,10 +204,10 @@ export function AdminAffiliates() {
               </tr>
             </thead>
             <tbody>
-              {filteredAffiliates.map((a) => (
+              {data.affiliates.map((a) => (
                 <tr key={a.id} className="border-b border-border/80 hover:bg-surface-2/50">
                   <td className="px-4 py-3">{a.name}</td>
-                  <td className="px-4 py-3 font-mono text-[12px] text-muted">{a.id}</td>
+                  <td className="px-4 py-3 font-mono text-[12px] text-muted">{a.refCode}</td>
                   <td className="px-4 py-3 text-muted">{a.email}</td>
                   <td className="px-4 py-3">
                     <Badge tone={tone[a.status]}>{a.status.replace("_", " ")}</Badge>
@@ -149,9 +216,9 @@ export function AdminAffiliates() {
                   <td className="px-4 py-3 tabular-nums">{a.conversions}</td>
                 </tr>
               ))}
-              {filteredAffiliates.length === 0 ? (
+              {data.affiliates.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-6 text-center text-muted" colSpan={6}>
+                  <td colSpan={6} className="px-4 py-6 text-center text-muted">
                     No affiliates match these filters.
                   </td>
                 </tr>
@@ -162,10 +229,10 @@ export function AdminAffiliates() {
       </div>
 
       <div className="mt-8">
-        <h2 className="text-[13px] font-medium mb-4">Tracked user submissions</h2>
+        <h2 className="mb-1 text-[13px] font-medium">Tracked user submissions</h2>
         <p className="mb-3 text-[12px] text-muted">
-          Captured when a visitor submits their name, email, and phone number — attributed to the
-          affiliate whose link they arrived through.
+          Captured when a visitor submits name, email, and phone — attributed to the affiliate whose
+          link they arrived through.
         </p>
         <Card className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-[13px]">
@@ -180,71 +247,73 @@ export function AdminAffiliates() {
               </tr>
             </thead>
             <tbody>
-              {trackedLeads.map((lead) => {
-                const affiliate = lead.affiliateId ? affiliateById.get(lead.affiliateId) : null;
-                return (
-                  <tr key={lead.id} className="border-b border-border/80 hover:bg-surface-2/50">
-                    <td className="px-4 py-3">{lead.name}</td>
-                    <td className="px-4 py-3 text-muted">
-                      <p>{lead.email}</p>
-                      <p>{lead.phone}</p>
-                    </td>
-                    <td className="px-4 py-3 text-muted">
-                      {lead.city}, {lead.state}
-                      <br />
-                      {lead.country}
-                    </td>
-                    <td className="px-4 py-3 text-muted">
-                      {lead.device}
-                      <br />
-                      {lead.browser}
-                    </td>
-                    <td className="px-4 py-3">
-                      {affiliate ? (
-                        <div>
-                          <p>{affiliate.name}</p>
-                          <p className="font-mono text-[12px] text-muted">{affiliate.id}</p>
-                        </div>
-                      ) : (
-                        <Badge tone="muted">Direct / no affiliate</Badge>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-muted">{formatDateTime(lead.submittedAt)}</td>
-                  </tr>
-                );
-              })}
+              {data.trackedLeads.map((lead) => (
+                <tr key={lead.id} className="border-b border-border/80 hover:bg-surface-2/50">
+                  <td className="px-4 py-3">{lead.name}</td>
+                  <td className="px-4 py-3 text-muted">
+                    <p>{lead.email}</p>
+                    <p>{lead.phone}</p>
+                  </td>
+                  <td className="px-4 py-3 text-muted">
+                    {lead.city}, {lead.state}
+                    <br />
+                    {lead.country}
+                  </td>
+                  <td className="px-4 py-3 text-muted">
+                    {lead.device}
+                    <br />
+                    {lead.browser}
+                  </td>
+                  <td className="px-4 py-3">
+                    {lead.affiliate ? (
+                      <div>
+                        <p>{lead.affiliate.name}</p>
+                        <p className="font-mono text-[12px] text-muted">{lead.affiliate.code}</p>
+                      </div>
+                    ) : (
+                      <Badge tone="muted">Direct / no affiliate</Badge>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-muted">{formatDateTime(lead.submittedAt)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </Card>
       </div>
 
       <div className="mt-8">
-        <h2 className="text-[13px] font-medium mb-4">Referrals & commissions</h2>
+        <h2 className="mb-4 text-[13px] font-medium">Referrals &amp; commissions</h2>
         <Card className="overflow-x-auto">
-          <table className="w-full text-left text-[13px]">
+          <table className="w-full min-w-[640px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-border text-[11px] uppercase tracking-[0.1em] text-faint">
                 <th className="px-4 py-3">Referral</th>
+                <th className="px-4 py-3">Affiliate</th>
                 <th className="px-4 py-3">Plan</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Commission</th>
               </tr>
             </thead>
             <tbody>
-              {referrals.map((r) => (
+              {data.referrals.map((r) => (
                 <tr key={r.id} className="border-b border-border/80">
                   <td className="px-4 py-3">{r.customer}</td>
-                  <td className="px-4 py-3">{r.plan}</td>
-                  <td className="px-4 py-3">{r.status}</td>
-                  <td className="px-4 py-3">{formatCurrency(r.commission)}</td>
+                  <td className="px-4 py-3 text-muted">{r.affiliate}</td>
+                  <td className="px-4 py-3 capitalize">{r.plan}</td>
+                  <td className="px-4 py-3">
+                    <Badge tone={tone[r.status] ?? "muted"}>{r.status.replace("_", " ")}</Badge>
+                  </td>
+                  <td className="px-4 py-3 tabular-nums">{formatCurrency(r.commission)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </Card>
+
         <p className="mb-2 mt-6 text-[12px] text-muted">
           Each commission carries the Click ID that generated it. If the linked subscription is
-          cancelled within 30 days of purchase, it is flagged below for reversal.
+          cancelled within 30 days of purchase it is flagged for reversal.
         </p>
         <Card className="overflow-x-auto">
           <table className="w-full min-w-[880px] text-left text-[13px]">
@@ -260,47 +329,37 @@ export function AdminAffiliates() {
               </tr>
             </thead>
             <tbody>
-              {commissions.map((c) => {
-                const affiliate = affiliateById.get(c.affiliateId);
-                const eligibleDays = c.status !== "reversed" ? reversalEligibility(c) : null;
-                return (
-                  <tr
-                    key={c.id}
-                    className={cn(
-                      "border-b border-border/80",
-                      eligibleDays !== null && "bg-danger-dim/40",
+              {data.commissions.map((c) => (
+                <tr
+                  key={c.id}
+                  className={cn("border-b border-border/80", c.eligibleDays != null && "bg-danger-dim/40")}
+                >
+                  <td className="px-4 py-3">{c.id}</td>
+                  <td className="px-4 py-3">{c.referral}</td>
+                  <td className="px-4 py-3 font-mono text-[12px] text-muted">{c.clickId}</td>
+                  <td className="px-4 py-3 text-muted">{c.affiliate}</td>
+                  <td className="px-4 py-3 tabular-nums">{formatCurrency(c.amount)}</td>
+                  <td className="px-4 py-3">
+                    <Badge tone={commissionTone[c.status]}>{c.status}</Badge>
+                    {c.status === "reversed" && c.reversalReason ? (
+                      <p className="mt-1 text-[12px] text-muted">{c.reversalReason}</p>
+                    ) : c.eligibleDays != null ? (
+                      <p className="mt-1 text-[12px] text-danger">
+                        Cancelled {c.eligibleDays}d after purchase — eligible for reversal
+                      </p>
+                    ) : null}
+                  </td>
+                  <td className="px-4 py-3">
+                    {c.eligibleDays != null ? (
+                      <button className="text-[12px] text-danger" onClick={() => markReversed(c.id)}>
+                        Mark as reversed
+                      </button>
+                    ) : (
+                      <span className="text-[12px] text-faint">—</span>
                     )}
-                  >
-                    <td className="px-4 py-3">{c.id}</td>
-                    <td className="px-4 py-3">{c.referral}</td>
-                    <td className="px-4 py-3 font-mono text-[12px] text-muted">{c.clickId}</td>
-                    <td className="px-4 py-3 text-muted">{affiliate ? affiliate.name : "—"}</td>
-                    <td className="px-4 py-3 tabular-nums">{formatCurrency(c.amount)}</td>
-                    <td className="px-4 py-3">
-                      <Badge tone={commissionTone[c.status]}>{c.status}</Badge>
-                      {c.status === "reversed" && c.reversalReason ? (
-                        <p className="mt-1 text-[12px] text-muted">{c.reversalReason}</p>
-                      ) : eligibleDays !== null ? (
-                        <p className="mt-1 text-[12px] text-danger">
-                          Cancelled {eligibleDays}d after purchase — eligible for reversal
-                        </p>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3">
-                      {eligibleDays !== null ? (
-                        <button
-                          className="text-[12px] text-danger"
-                          onClick={() => markReversed(c.id)}
-                        >
-                          Mark as reversed
-                        </button>
-                      ) : (
-                        <span className="text-[12px] text-faint">—</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </Card>

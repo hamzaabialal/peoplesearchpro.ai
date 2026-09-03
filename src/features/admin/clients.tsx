@@ -4,13 +4,33 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/dialog";
-import { Pagination } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
-import { partnerClients } from "@/lib/data/mock";
-import type { PartnerActivityPeriod, PartnerClient } from "@/types";
 import { cn, formatDate } from "@/lib/utils";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+
+type Period = "today" | "yesterday" | "last2days" | "last7days" | "lastMonth";
+type Activity = { leads: number; conversations: number };
+type Partner = {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  referralLink: string;
+  landingPage: string | null;
+  joinedAt: string;
+  clicks: number;
+  conversions: number;
+  activity: Record<Period, Activity>;
+};
+
+const periods: { value: Period; label: string }[] = [
+  { value: "today", label: "Today" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "last2days", label: "Last 2 days" },
+  { value: "last7days", label: "Last 7 days" },
+  { value: "lastMonth", label: "Last month" },
+];
 
 const tone: Record<string, string> = {
   active: "success",
@@ -20,39 +40,53 @@ const tone: Record<string, string> = {
   cancelled: "danger",
 };
 
-const periods: Array<{ value: PartnerActivityPeriod; label: string }> = [
-  { value: "today", label: "Today" },
-  { value: "yesterday", label: "Yesterday" },
-  { value: "last2days", label: "Last 2 Days" },
-  { value: "last7days", label: "Last 7 Days" },
-  { value: "lastMonth", label: "Last Month" },
-];
-
 export function AdminClients() {
-  const [period, setPeriod] = useState<PartnerActivityPeriod>("today");
-  const [view, setView] = useState<PartnerClient | null>(null);
+  const [period, setPeriod] = useState<Period>("today");
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [totals, setTotals] = useState<Activity>({ leads: 0, conversations: 0 });
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<Partner | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    fetch(`/api/admin/clients?period=${period}`)
+      .then(async (r) => {
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? "Failed to load");
+        return r.json();
+      })
+      .then((d) => {
+        setPartners(d.partners);
+        setTotals(d.totals);
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [period]);
+
+  useEffect(load, [load]);
 
   const periodLabel = periods.find((p) => p.value === period)!.label;
-  const totals = partnerClients.reduce(
-    (acc, c) => {
-      acc.leads += c.activity[period].leads;
-      acc.conversations += c.activity[period].conversations;
-      return acc;
-    },
-    { leads: 0, conversations: 0 },
-  );
+
+  if (error) {
+    return (
+      <div>
+        <PageHeader title="Clients" />
+        <p className="mt-8 text-[13px] text-danger">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div>
       <PageHeader
         title="Clients"
-        subtitle="Partners and affiliates working with PeopleSearch Pro, and their referral performance."
+        subtitle="Partners working with PeopleSearch Pro and their referral activity — live from the database."
         action={
           <div>
             <p className="mb-1 text-[11px] uppercase tracking-[0.12em] text-faint">Period</p>
             <Select
               value={period}
-              onChange={(e) => setPeriod(e.target.value as PartnerActivityPeriod)}
+              onChange={(e) => setPeriod(e.target.value as Period)}
               className="w-auto"
             >
               {periods.map((p) => (
@@ -67,33 +101,45 @@ export function AdminClients() {
 
       <div className="mt-8 grid gap-3 sm:grid-cols-3">
         {[
-          ["Partners", partnerClients.length],
+          ["Partners", partners.length],
           [`Leads (${periodLabel})`, totals.leads],
           [`Conversations (${periodLabel})`, totals.conversations],
         ].map(([k, v]) => (
           <Card key={String(k)} className="p-4">
             <p className="text-[11px] uppercase tracking-[0.12em] text-faint">{k}</p>
-            <p className="mt-2 text-[20px] tabular-nums">{v}</p>
+            <p className="mt-2 text-[20px] tabular-nums">{loading ? "…" : v}</p>
           </Card>
         ))}
       </div>
 
       <Card className="mt-6 overflow-x-auto">
-        <div className="hidden overflow-x-auto md:block">
-          <table className="w-full min-w-[900px] text-left text-[13px]">
-            <thead>
-              <tr className="border-b border-border text-[11px] uppercase tracking-[0.1em] text-faint">
-                <th className="px-4 py-3">Partner</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Referral link</th>
-                <th className="px-4 py-3">Landing page</th>
-                <th className="px-4 py-3">Leads</th>
-                <th className="px-4 py-3">Conversations</th>
-                <th className="px-4 py-3">Actions</th>
+        <table className="w-full min-w-[900px] text-left text-[13px]">
+          <thead>
+            <tr className="border-b border-border text-[11px] uppercase tracking-[0.1em] text-faint">
+              <th className="px-4 py-3">Partner</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Referral link</th>
+              <th className="px-4 py-3">Landing page</th>
+              <th className="px-4 py-3">Leads</th>
+              <th className="px-4 py-3">Conversations</th>
+              <th className="px-4 py-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={7} className="px-4 py-10 text-center text-muted">
+                  Loading…
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {partnerClients.map((c) => (
+            ) : partners.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-4 py-10 text-center text-muted">
+                  No partners yet.
+                </td>
+              </tr>
+            ) : (
+              partners.map((c) => (
                 <tr key={c.id} className="border-b border-border/80 hover:bg-surface-2/50">
                   <td className="px-4 py-3">
                     <p>{c.name}</p>
@@ -112,29 +158,10 @@ export function AdminClients() {
                     </button>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="space-y-3 p-4 md:hidden">
-          {partnerClients.map((c) => (
-            <button
-              key={c.id}
-              className="w-full rounded-[10px] border border-border p-3 text-left"
-              onClick={() => setView(c)}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <p>{c.name}</p>
-                <Badge tone={tone[c.status]}>{c.status.replace("_", " ")}</Badge>
-              </div>
-              <p className="mt-1 text-[12px] text-muted">{c.landingPage}</p>
-              <p className="mt-1 text-[12px] tabular-nums text-muted">
-                {c.activity[period].leads} leads · {c.activity[period].conversations} conversations
-              </p>
-            </button>
-          ))}
-        </div>
-        <Pagination />
+              ))
+            )}
+          </tbody>
+        </table>
       </Card>
 
       <Modal
@@ -169,11 +196,19 @@ export function AdminClients() {
               <span>{view.landingPage}</span>
             </div>
             <div className="flex justify-between">
+              <span className="text-muted">Clicks · conversions</span>
+              <span className="tabular-nums">
+                {view.clicks} · {view.conversions}
+              </span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-muted">Partner since</span>
               <span>{formatDate(view.joinedAt)}</span>
             </div>
             <div>
-              <p className="mb-2 text-[11px] uppercase tracking-[0.12em] text-faint">Activity by period</p>
+              <p className="mb-2 text-[11px] uppercase tracking-[0.12em] text-faint">
+                Activity by period
+              </p>
               <table className="w-full text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-border text-[11px] uppercase tracking-[0.1em] text-faint">
@@ -184,7 +219,10 @@ export function AdminClients() {
                 </thead>
                 <tbody>
                   {periods.map((p) => (
-                    <tr key={p.value} className={cn("border-b border-border/80", p.value === period && "text-text")}>
+                    <tr
+                      key={p.value}
+                      className={cn("border-b border-border/80", p.value === period && "text-text")}
+                    >
                       <td className="py-2 text-muted">{p.label}</td>
                       <td className="py-2 tabular-nums">{view.activity[p.value].leads}</td>
                       <td className="py-2 tabular-nums">{view.activity[p.value].conversations}</td>

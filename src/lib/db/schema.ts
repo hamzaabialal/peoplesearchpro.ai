@@ -84,6 +84,20 @@ export const subscriptionStatus = pgEnum("subscription_status", [
   "past_due",
   "canceled",
 ]);
+export const affiliateStatus = pgEnum("affiliate_status", [
+  "active",
+  "trial",
+  "suspended",
+  "past_due",
+  "cancelled",
+]);
+export const commissionStatus = pgEnum("commission_status", [
+  "pending",
+  "approved",
+  "payable",
+  "paid",
+  "reversed",
+]);
 
 /* -------------------------------------------------------------------------- */
 /* Users & billing                                                             */
@@ -304,6 +318,90 @@ export const signups = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/* Affiliates / referral programme                                             */
+/* -------------------------------------------------------------------------- */
+
+export const affiliates = pgTable("affiliates", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  /** Their login, if they have one. */
+  signupId: bigint("signup_id", { mode: "number" }).references(() => signups.id, {
+    onDelete: "set null",
+  }),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  refCode: text("ref_code").notNull().unique(),
+  landingPage: text("landing_page"),
+  status: affiliateStatus("status").notNull().default("active"),
+  clicks: integer("clicks").notNull().default(0),
+  joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const referrals = pgTable("referrals", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  affiliateId: bigint("affiliate_id", { mode: "number" })
+    .notNull()
+    .references(() => affiliates.id, { onDelete: "cascade" }),
+  /** Privacy-safe label shown in admin (not the real customer name). */
+  customerLabel: text("customer_label").notNull(),
+  customerSignupId: bigint("customer_signup_id", { mode: "number" }).references(
+    () => signups.id,
+    { onDelete: "set null" },
+  ),
+  plan: text("plan").notNull(),
+  status: text("status").notNull(),
+  commissionAmount: numeric("commission_amount", { precision: 12, scale: 2 })
+    .notNull()
+    .default("0"),
+  clickId: text("click_id"),
+  subscribedAt: timestamp("subscribed_at", { withTimezone: true }),
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const commissions = pgTable("commissions", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  affiliateId: bigint("affiliate_id", { mode: "number" })
+    .notNull()
+    .references(() => affiliates.id, { onDelete: "cascade" }),
+  referralId: bigint("referral_id", { mode: "number" })
+    .notNull()
+    .references(() => referrals.id, { onDelete: "cascade" }),
+  clickId: text("click_id"),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  status: commissionStatus("status").notNull().default("pending"),
+  reversalReason: text("reversal_reason"),
+  period: text("period"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const trackedLeads = pgTable("tracked_leads", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  /** null = arrived directly, no affiliate link. */
+  affiliateId: bigint("affiliate_id", { mode: "number" }).references(
+    () => affiliates.id,
+    { onDelete: "set null" },
+  ),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  city: text("city"),
+  state: text("state"),
+  country: text("country"),
+  device: text("device"),
+  browser: text("browser"),
+  submittedAt: timestamp("submitted_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/* -------------------------------------------------------------------------- */
 /* Inferred types                                                              */
 /* -------------------------------------------------------------------------- */
 
@@ -321,3 +419,7 @@ export type Invoice = typeof invoices.$inferSelect;
 export type Subscription = typeof subscriptions.$inferSelect;
 export type Signup = typeof signups.$inferSelect;
 export type NewSignup = typeof signups.$inferInsert;
+export type Affiliate = typeof affiliates.$inferSelect;
+export type Referral = typeof referrals.$inferSelect;
+export type Commission = typeof commissions.$inferSelect;
+export type TrackedLead = typeof trackedLeads.$inferSelect;
