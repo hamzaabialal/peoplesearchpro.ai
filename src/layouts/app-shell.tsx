@@ -186,7 +186,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               items={[
                 { label: "Profile", href: "/app/settings" },
                 { label: "Billing", href: "/app/billing" },
-                { label: "Sign out", href: "/login" },
+                { label: "Sign out", href: "/api/logout" },
               ]}
             />
           </div>

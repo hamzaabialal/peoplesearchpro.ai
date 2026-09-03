@@ -1,4 +1,6 @@
 import { sql } from "@/lib/db";
+import { setSession } from "@/lib/auth/server";
+import type { SessionRole } from "@/lib/auth/session";
 import { validateEmail } from "@/lib/validation/signup";
 import { validatePassword } from "@/lib/validation/login";
 import bcrypt from "bcryptjs";
@@ -48,8 +50,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
+    const role = (user.role as SessionRole) ?? "customer";
+    await setSession({
+      sub: String(user.id),
+      email: user.email,
+      name: user.name,
+      role,
+    });
+
     return NextResponse.json({
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role },
     });
   } catch (err) {
     console.error("login failed", err);

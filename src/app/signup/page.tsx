@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { AuthShell } from "@/layouts/auth";
 import { cn } from "@/lib/utils";
 import {
@@ -10,12 +9,11 @@ import {
   validateEmail,
   validateName,
   validatePassword,
-  validateRole,
-  type SignupRole,
 } from "@/lib/validation/signup";
 import { showErrorToast } from "@/lib/toast";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -29,18 +27,17 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<SignupRole | "">("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
   const nameError = useMemo(() => validateName(name), [name]);
   const emailError = useMemo(() => validateEmail(email), [email]);
   const passwordError = useMemo(() => validatePassword(password), [password]);
-  const roleError = useMemo(() => validateRole(role), [role]);
   const strength = useMemo(() => passwordStrength(password), [password]);
 
-  const isValid = !nameError && !emailError && !passwordError && !roleError;
+  const isValid = !nameError && !emailError && !passwordError;
 
   // Errors are hidden until the first submit attempt; after that, they stay
   // live so fields clear their errors in real time as the user fixes them.
@@ -56,8 +53,7 @@ export default function SignupPage() {
           setSubmitted(true);
           if (!isValid || isSubmitting) return;
 
-          const formData = { name: name.trim(), email: email.trim(), password, role };
-          console.log("Signup form submitted:", formData);
+          const formData = { name: name.trim(), email: email.trim(), password };
 
           setIsSubmitting(true);
           try {
@@ -77,11 +73,8 @@ export default function SignupPage() {
             }
 
             toast.success("Account created");
-            setName("");
-            setEmail("");
-            setPassword("");
-            setRole("");
-            setSubmitted(false);
+            router.push("/app");
+            router.refresh();
           } catch {
             showErrorToast(
               "Connection error",
@@ -165,26 +158,6 @@ export default function SignupPage() {
 
           {showErrors && passwordError ? (
             <p className="mt-1.5 text-[12px] text-danger">{passwordError}</p>
-          ) : null}
-        </div>
-
-        <div>
-          <Label htmlFor="signup-role">Role</Label>
-          <Select
-            id="signup-role"
-            value={role}
-            onChange={(e) => setRole(e.target.value as SignupRole)}
-            aria-invalid={showErrors && !!roleError}
-            className={cn(showErrors && roleError && "border-danger focus:border-danger/60")}
-          >
-            <option value="" disabled>
-              Select Role
-            </option>
-            <option value="customer">Customer</option>
-            <option value="partner">Partner / Affiliate</option>
-          </Select>
-          {showErrors && roleError ? (
-            <p className="mt-1.5 text-[12px] text-danger">{roleError}</p>
           ) : null}
         </div>
 

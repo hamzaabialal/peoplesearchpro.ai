@@ -7,7 +7,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Sign in with the prefilled demo account, or skip auth and go to `/app`.
+Open [http://localhost:3000](http://localhost:3000). Create an account at `/signup` (email + password, stored in Postgres); `/app`, `/admin`, and `/partner` require a session. Needs `DATABASE_URL` and `AUTH_SECRET` set — see `.env.local`.
 
 ## Surfaces
 

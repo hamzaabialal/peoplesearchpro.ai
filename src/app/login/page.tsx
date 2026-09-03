@@ -60,7 +60,10 @@ export default function LoginPage() {
             }
 
             toast.success("Signed in");
-            router.push(data.user?.role === "partner" ? "/partner" : "/app");
+            const next = new URLSearchParams(window.location.search).get("next");
+            const fallback = data.user?.role === "partner" ? "/partner" : "/app";
+            router.push(next && next.startsWith("/") ? next : fallback);
+            router.refresh();
           } catch {
             showErrorToast(
               "Connection error",
