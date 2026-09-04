@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { AuthShell } from "@/layouts/auth";
-import { showErrorToast } from "@/lib/toast";
+import { showErrorToast, showSuccessToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { validatePassword } from "@/lib/validation/login";
 import { validateEmail } from "@/lib/validation/signup";
@@ -12,7 +12,6 @@ import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -60,7 +59,7 @@ export default function LoginPage() {
               return;
             }
 
-            toast.success("Signed in");
+            showSuccessToast("Signed in", "Welcome back — redirecting you now.");
             const next = new URLSearchParams(window.location.search).get("next");
             const fallback = dashboardPath(data.user?.role);
             router.push(next && next.startsWith("/") ? next : fallback);
@@ -80,6 +79,7 @@ export default function LoginPage() {
           <Input
             id="login-email"
             type="email"
+            required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
@@ -97,6 +97,7 @@ export default function LoginPage() {
             <Input
               id="login-password"
               type={showPassword ? "text" : "password"}
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"

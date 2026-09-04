@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { AuthShell } from "@/layouts/auth";
 import { cn } from "@/lib/utils";
 import {
@@ -9,14 +10,15 @@ import {
   validateEmail,
   validateName,
   validatePassword,
+  validateRole,
+  type SignupRole,
 } from "@/lib/validation/signup";
-import { showErrorToast } from "@/lib/toast";
+import { showErrorToast, showSuccessToast } from "@/lib/toast";
 import { dashboardPath } from "@/lib/auth/roles";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const strengthStyles: Record<"Weak" | "Medium" | "Strong", { bar: string; text: string }> = {
   Weak: { bar: "bg-danger", text: "text-danger" },
@@ -28,17 +30,39 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<SignupRole | "">("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [refCode, setRefCode] = useState<string | null>(null);
+  const clickLogged = useRef(false);
   const router = useRouter();
+
+  // Referral tracking: if this signup page was opened via a partner/affiliate
+  // link (?ref=PSP-XXXXX), log the click once and carry the code through to
+  // the signup submission so the referring account gets credited.
+  // clickLogged guards against React StrictMode's dev-only double-invoke of
+  // effects (which would otherwise log two clicks for one real page visit).
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (!ref) return;
+    setRefCode(ref);
+    if (clickLogged.current) return;
+    clickLogged.current = true;
+    fetch("/api/referral/click", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ref }),
+    }).catch(() => {});
+  }, []);
 
   const nameError = useMemo(() => validateName(name), [name]);
   const emailError = useMemo(() => validateEmail(email), [email]);
   const passwordError = useMemo(() => validatePassword(password), [password]);
+  const roleError = useMemo(() => validateRole(role), [role]);
   const strength = useMemo(() => passwordStrength(password), [password]);
 
-  const isValid = !nameError && !emailError && !passwordError;
+  const isValid = !nameError && !emailError && !passwordError && !roleError;
 
   // Errors are hidden until the first submit attempt; after that, they stay
   // live so fields clear their errors in real time as the user fixes them.
@@ -54,7 +78,13 @@ export default function SignupPage() {
           setSubmitted(true);
           if (!isValid || isSubmitting) return;
 
-          const formData = { name: name.trim(), email: email.trim(), password };
+          const formData = {
+            name: name.trim(),
+            email: email.trim(),
+            password,
+            role,
+            ref: refCode ?? undefined,
+          };
 
           setIsSubmitting(true);
           try {
@@ -73,7 +103,7 @@ export default function SignupPage() {
               return;
             }
 
-            toast.success("Account created");
+            showSuccessToast("Account created", "Welcome to PeopleSearch Pro — redirecting you now.");
             router.push(dashboardPath(data.user?.role));
             router.refresh();
           } catch {
@@ -159,6 +189,26 @@ export default function SignupPage() {
 
           {showErrors && passwordError ? (
             <p className="mt-1.5 text-[12px] text-danger">{passwordError}</p>
+          ) : null}
+        </div>
+
+        <div>
+          <Label htmlFor="signup-role">Role</Label>
+          <Select
+            id="signup-role"
+            value={role}
+            onChange={(e) => setRole(e.target.value as SignupRole)}
+            aria-invalid={showErrors && !!roleError}
+            className={cn(showErrors && roleError && "border-danger focus:border-danger/60")}
+          >
+            <option value="" disabled>
+              Select Role
+            </option>
+            <option value="customer">Customer</option>
+            <option value="partner">Partner / Affiliate</option>
+          </Select>
+          {showErrors && roleError ? (
+            <p className="mt-1.5 text-[12px] text-danger">{roleError}</p>
           ) : null}
         </div>
 

@@ -4,17 +4,50 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Modal } from "@/components/ui/dialog";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { currentUser, invoices, plans } from "@/lib/data/mock";
 import { stripeService } from "@/lib/services";
-import { formatCurrency, formatDate } from "@/lib/utils";
-import { useState } from "react";
+import { cn, formatCurrency } from "@/lib/utils";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function Page() {
+  const { user } = useCurrentUser();
   const [change, setChange] = useState(false);
   const [cancel, setCancel] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [trialExpiredNotice, setTrialExpiredNotice] = useState(false);
   const used = currentUser.creditsTotal - currentUser.creditsRemaining;
   const pct = Math.round((used / currentUser.creditsTotal) * 100);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reason") === "trial_expired") {
+      setTrialExpiredNotice(true);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+
+  const currentPlan = plans.find((p) => p.id === user?.plan);
+
+  const confirmPlan = async () => {
+    if (!selectedPlan) return;
+    setConfirming(true);
+    try {
+      const res = await fetch("/api/billing/select-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId: selectedPlan }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Failed to change plan");
+      toast.success("Plan change queued (demo)");
+      window.location.reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to change plan");
+      setConfirming(false);
+    }
+  };
 
   const portal = async () => {
     await stripeService.portalUrl();
@@ -33,21 +66,44 @@ export default function Page() {
         }
       />
 
+      {trialExpiredNotice ? (
+        <div className="mt-6 rounded-[10px] border border-danger/25 bg-danger-dim px-4 py-3 text-[13px] text-danger">
+          Your 7-day trial has ended. Select a plan below to keep using PeopleSearch Pro.
+        </div>
+      ) : null}
+
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <Card className="p-5">
           <p className="text-[11px] uppercase tracking-[0.12em] text-faint">Current plan</p>
-          <p className="mt-2 text-[22px]">{currentUser.planLabel}</p>
-          <p className="mt-1 text-[13px] text-muted">
-            {formatCurrency(149)} · Next billing {formatDate(currentUser.nextBillingAt)}
-          </p>
+          {currentPlan ? (
+            <>
+              <p className="mt-2 text-[22px]">{currentPlan.name}</p>
+              <p className="mt-1 text-[13px] text-muted">{currentPlan.priceLabel}</p>
+            </>
+          ) : (
+            <>
+              <p className="mt-2 text-[22px]">Trial</p>
+              <p className="mt-1 text-[13px] text-muted">
+                {user
+                  ? user.trialExpired
+                    ? "Trial ended — select a plan to continue"
+                    : `${user.trialLabel} — no plan selected yet`
+                  : "Loading…"}
+              </p>
+            </>
+          )}
           <div className="mt-5 flex flex-wrap gap-2">
-            <Button onClick={() => setChange(true)}>Upgrade</Button>
-            <Button variant="secondary" onClick={() => setChange(true)}>
-              Change Plan
-            </Button>
-            <Button variant="ghost" onClick={() => setCancel(true)}>
-              Cancel Subscription
-            </Button>
+            <Button onClick={() => setChange(true)}>{currentPlan ? "Upgrade" : "Select a plan"}</Button>
+            {currentPlan ? (
+              <Button variant="secondary" onClick={() => setChange(true)}>
+                Change Plan
+              </Button>
+            ) : null}
+            {currentPlan ? (
+              <Button variant="ghost" onClick={() => setCancel(true)}>
+                Cancel Subscription
+              </Button>
+            ) : null}
           </div>
         </Card>
         <Card className="p-5">
@@ -96,20 +152,34 @@ export default function Page() {
 
       <Modal
         open={change}
-        onOpenChange={setChange}
+        onOpenChange={(v) => {
+          setChange(v);
+          if (!v) setSelectedPlan(null);
+        }}
         title="Change plan"
         description="Stripe Checkout would complete this in production."
         footer={
-          <Button onClick={() => { setChange(false); toast.success("Plan change queued (demo)"); }}>
-            Confirm
+          <Button onClick={confirmPlan} disabled={!selectedPlan || confirming}>
+            {confirming ? "Confirming…" : "Confirm"}
           </Button>
         }
       >
         <ul className="space-y-2 text-[13px]">
           {plans.map((p) => (
-            <li key={p.id} className="flex justify-between rounded-md border border-border px-3 py-2">
-              <span>{p.name}</span>
-              <span className="text-muted">{p.priceLabel}</span>
+            <li key={p.id}>
+              <button
+                type="button"
+                onClick={() => setSelectedPlan(p.id)}
+                className={cn(
+                  "flex w-full justify-between rounded-md border px-3 py-2 text-left transition-colors",
+                  selectedPlan === p.id
+                    ? "border-accent/50 bg-accent-dim"
+                    : "border-border hover:bg-surface-2",
+                )}
+              >
+                <span>{p.name}</span>
+                <span className="text-muted">{p.priceLabel}</span>
+              </button>
             </li>
           ))}
         </ul>

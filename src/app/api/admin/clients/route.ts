@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getAdminSession } from "@/lib/auth/server";
+import { referralLink, requestOrigin } from "@/lib/referrals";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const baseUrl = requestOrigin(request);
   const { searchParams } = new URL(request.url);
   const period = (searchParams.get("period") ?? "today") as Period;
   const selected: Period = PERIODS.includes(period) ? period : "today";
@@ -55,7 +57,7 @@ export async function GET(request: Request) {
     name: r.name,
     email: r.email,
     status: r.status,
-    referralLink: `peoplesearchpro.ai/r/${r.ref_code}`,
+    referralLink: referralLink(r.ref_code, baseUrl),
     landingPage: r.landing_page,
     joinedAt: r.joined_at,
     clicks: r.clicks,
