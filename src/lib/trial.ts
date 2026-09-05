@@ -3,12 +3,8 @@
  * proxy.ts (edge middleware) as well as regular server/client code.
  */
 
-/**
- * TEST VALUE — 2 minutes, so the full referral → trial-expiry → plan
- * selection → commission loop can be tested quickly without waiting.
- * Set this back to a real length before shipping, e.g. 7 * 24 * 60 (7 days).
- */
-export const TRIAL_MINUTES = 2;
+/** Free trial length: 7 days. */
+export const TRIAL_MINUTES = 7 * 24 * 60;
 
 const MINUTE_MS = 60000;
 

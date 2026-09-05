@@ -2,7 +2,7 @@
 
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { DataTable, highlightMatch, type DataTableColumn } from "@/components/ui/data-table";
 import { formatCurrency } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
@@ -29,10 +29,12 @@ const columns: DataTableColumn<Commission>[] = [
     key: "referral",
     header: "Referral",
     value: (c) => c.referral,
-    render: (c) => (
+    render: (c, query) => (
       <>
-        {c.referral}
-        {c.reversalReason ? <p className="mt-0.5 text-[11px] text-danger">{c.reversalReason}</p> : null}
+        {highlightMatch(c.referral, query)}
+        {c.reversalReason ? (
+          <p className="mt-0.5 text-[11px] text-danger">{highlightMatch(c.reversalReason, query)}</p>
+        ) : null}
       </>
     ),
   },

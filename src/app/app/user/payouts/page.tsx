@@ -2,7 +2,7 @@
 
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { DataTable, highlightMatch, type DataTableColumn } from "@/components/ui/data-table";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
@@ -49,11 +49,11 @@ const transferredColumns: DataTableColumn<Transferred>[] = [
     key: "commission",
     header: "From commission",
     value: (p) => (p.commission ? `${p.commission.id} ${p.commission.referral}` : ""),
-    render: (p) =>
+    render: (p, query) =>
       p.commission ? (
         <>
-          <span className="font-mono text-[12px] text-muted">{p.commission.id}</span>
-          <p className="text-[12px] text-muted">{p.commission.referral}</p>
+          <span className="font-mono text-[12px] text-muted">{highlightMatch(p.commission.id, query)}</span>
+          <p className="text-[12px] text-muted">{highlightMatch(p.commission.referral, query)}</p>
         </>
       ) : (
         <span className="text-faint">—</span>
@@ -63,13 +63,14 @@ const transferredColumns: DataTableColumn<Transferred>[] = [
     key: "amount",
     header: "Amount",
     value: (p) => formatCurrency(p.amount),
-    render: (p) =>
+    render: (p, query) =>
       p.status === "paid" ? (
         <span>
-          {formatCurrency(p.amount)} <span className="text-[12px] text-success">transferred</span>
+          {highlightMatch(formatCurrency(p.amount), query)}{" "}
+          <span className="text-[12px] text-success">transferred</span>
         </span>
       ) : (
-        formatCurrency(p.amount)
+        highlightMatch(formatCurrency(p.amount), query)
       ),
   },
   {

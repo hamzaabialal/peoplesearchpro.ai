@@ -132,7 +132,7 @@ export function DataTable<T>({
                       key={col.key}
                       className={cn("px-4 py-3", col.align === "right" && "text-right", col.className)}
                     >
-                      {col.render ? col.render(row) : col.value(row)}
+                      {col.render ? col.render(row, query) : highlightMatch(col.value(row), query)}
                     </td>
                   ))}
                 </tr>
