@@ -422,6 +422,15 @@ export const payouts = pgTable("payouts", {
   affiliateId: bigint("affiliate_id", { mode: "number" })
     .notNull()
     .references(() => affiliates.id, { onDelete: "cascade" }),
+  /**
+   * The commission this payout transfers — one payout per commission.
+   * Set automatically when an admin marks a commission "paid"
+   * (see POST /api/admin/commissions/[id]). Null for any payout entered
+   * without a specific commission behind it.
+   */
+  commissionId: bigint("commission_id", { mode: "number" })
+    .references(() => commissions.id, { onDelete: "set null" })
+    .unique(),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull().default("0"),
   status: payoutStatus("status").notNull().default("scheduled"),
   method: text("method"),

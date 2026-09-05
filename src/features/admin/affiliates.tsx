@@ -125,6 +125,21 @@ export function AdminAffiliates() {
     }
   }
 
+  async function markPaid(id: string) {
+    try {
+      const res = await fetch(`/api/admin/commissions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "paid" }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Failed");
+      toast.success(`${id} paid — transferred to the affiliate's payouts`);
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    }
+  }
+
   const filtersActive = useMemo(
     () => !!(f.name || f.code || f.email),
     [f],
@@ -350,13 +365,21 @@ export function AdminAffiliates() {
                     ) : null}
                   </td>
                   <td className="px-4 py-3">
-                    {c.eligibleDays != null ? (
-                      <button className="text-[12px] text-danger" onClick={() => markReversed(c.id)}>
-                        Mark as reversed
-                      </button>
-                    ) : (
-                      <span className="text-[12px] text-faint">—</span>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {c.eligibleDays != null ? (
+                        <button className="text-[12px] text-danger" onClick={() => markReversed(c.id)}>
+                          Mark as reversed
+                        </button>
+                      ) : null}
+                      {c.status !== "paid" && c.status !== "reversed" ? (
+                        <button className="text-[12px] text-success" onClick={() => markPaid(c.id)}>
+                          Mark as paid
+                        </button>
+                      ) : null}
+                      {c.eligibleDays == null && (c.status === "paid" || c.status === "reversed") ? (
+                        <span className="text-[12px] text-faint">—</span>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}

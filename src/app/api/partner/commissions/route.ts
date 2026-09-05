@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { commissions, referrals } from "@/lib/db/schema";
 import { requireAffiliate } from "@/lib/referrals";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { jsonNoStore } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,14 @@ export async function GET() {
     })
     .from(commissions)
     .innerJoin(referrals, eq(commissions.referralId, referrals.id))
-    .where(eq(commissions.affiliateId, ctx.affiliate.id))
+    .where(
+      and(
+        eq(commissions.affiliateId, ctx.affiliate.id),
+        // A referral that never actually picked a plan has nothing to
+        // commission — hide it rather than show a $0/"never happened" row.
+        ne(referrals.plan, ""),
+      ),
+    )
     .orderBy(desc(commissions.createdAt));
 
   return jsonNoStore({

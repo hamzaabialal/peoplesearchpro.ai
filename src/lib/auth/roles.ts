@@ -31,7 +31,7 @@ export function dashboardPath(role: SessionRole | string | null | undefined): st
     case "admin":
       return "/admin";
     case "partner":
-      return "/user";
+      return "/app/user";
     default:
       return "/app";
   }

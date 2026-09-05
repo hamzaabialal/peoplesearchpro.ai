@@ -10,13 +10,13 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const nav = [
-  { href: "/user", label: "Overview" },
-  { href: "/user/reports", label: "Reports" },
-  { href: "/user/referrals", label: "Referrals" },
-  { href: "/user/commissions", label: "Commissions" },
-  { href: "/user/payouts", label: "Payouts" },
-  { href: "/user/campaigns", label: "Campaigns" },
-  { href: "/user/settings", label: "Settings" },
+  { href: "/app/user", label: "Overview" },
+  { href: "/app/user/reports", label: "Reports" },
+  { href: "/app/user/referrals", label: "Referrals" },
+  { href: "/app/user/commissions", label: "Commissions" },
+  { href: "/app/user/payouts", label: "Payouts" },
+  { href: "/app/user/campaigns", label: "Campaigns" },
+  { href: "/app/user/settings", label: "Settings" },
 ];
 
 export function PartnerShell({ children }: { children: React.ReactNode }) {
@@ -33,7 +33,7 @@ export function PartnerShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const profileItems = [
-    { label: "Settings", href: "/user/settings" },
+    { label: "Settings", href: "/app/user/settings" },
     { label: "Sign out", href: "/api/logout", danger: true },
   ];
   const profileHeader = (
@@ -46,14 +46,14 @@ export function PartnerShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-bg">
       <aside className="sticky top-0 hidden h-screen w-[248px] flex-col border-r border-border bg-bg-elevated md:flex">
-        <Link href="/user" className="flex h-14 items-center gap-2.5 border-b border-border px-4">
+        <Link href="/app/user" className="flex h-14 items-center gap-2.5 border-b border-border px-4">
           <Handshake size={16} className="text-accent-2" />
           <span className="text-[13px] font-medium">User</span>
         </Link>
         <nav className="flex-1 space-y-0.5 px-2 py-3">
           {nav.map((item) => {
             const active =
-              item.href === "/user" ? pathname === "/user" : pathname.startsWith(item.href);
+              item.href === "/app/user" ? pathname === "/app/user" : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}

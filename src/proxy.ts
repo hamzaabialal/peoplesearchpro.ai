@@ -5,10 +5,14 @@ import { sql } from "@/lib/db";
 import { isTrialExpired } from "@/lib/trial";
 
 /** Route groups that require a signed-in session. */
-const PROTECTED = ["/app", "/admin", "/user"];
+const PROTECTED = ["/app", "/admin"];
 
-/** Reachable under /app even with an expired trial and no plan chosen. */
-const TRIAL_EXEMPT = ["/app/billing", "/app/settings"];
+/**
+ * Reachable under /app even with an expired trial and no plan chosen.
+ * /app/user (the affiliate/referral dashboard) is its own thing — earning or
+ * checking referral commissions shouldn't be blocked by the product trial.
+ */
+const TRIAL_EXEMPT = ["/app/billing", "/app/settings", "/app/user"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -29,9 +33,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/app", request.url));
   }
 
-  // 7-day trial: once it's expired with no plan chosen, /app is locked to
-  // billing (to pick a plan) and settings — every other /app page bounces
-  // to billing. Admins are exempt (they're operators, not product trial users).
+  // Trial (see src/lib/trial.ts for the length): once it's expired with no
+  // plan chosen, /app is locked to billing (to pick a plan), settings, and
+  // the affiliate dashboard — every other /app page bounces to billing.
+  // Admins are exempt (they're operators, not product trial users).
   if (session && session.role !== "admin" && pathname.startsWith("/app")) {
     const isExempt = TRIAL_EXEMPT.some((p) => pathname === p || pathname.startsWith(`${p}/`));
     if (!isExempt) {

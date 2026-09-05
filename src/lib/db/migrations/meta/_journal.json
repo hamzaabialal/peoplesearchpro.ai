@@ -64,6 +64,13 @@
       "when": 1788532919942,
       "tag": "0008_cynical_mystique",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788605926849,
+      "tag": "0009_sharp_silverclaw",
+      "breakpoints": true
     }
   ]
 }

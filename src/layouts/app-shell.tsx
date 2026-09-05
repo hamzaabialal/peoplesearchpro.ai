@@ -36,7 +36,7 @@ const nav = [
   { href: "/app/people", label: "Saved People", icon: Users },
   { href: "/app/sources", label: "Data Sources", icon: Shield },
   { href: "/app/billing", label: "Billing", icon: CreditCard },
-  { href: "/user", label: "Affiliate / User", icon: Handshake },
+  { href: "/app/user", label: "Affiliate / User", icon: Handshake },
   { href: "/app/settings", label: "Settings", icon: Settings },
   { href: "/app/help", label: "Help", icon: LifeBuoy },
 ];
@@ -47,6 +47,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const crumbs = useMemo(() => breadcrumbs(pathname), [pathname]);
   const { user } = useCurrentUser();
+
+  // /app/user has its own shell (PartnerShell, in src/app/app/user/layout.tsx)
+  // with its own sidebar/header. Rendering AppShell's chrome around it too
+  // would nest two shells inside each other, so step aside entirely here —
+  // this also means the trial paywall (TrialGate, below) never covers the
+  // affiliate dashboard, which shouldn't be gated by the product trial.
+  if (pathname === "/app/user" || pathname.startsWith("/app/user/")) {
+    return <>{children}</>;
+  }
 
   const profileHeader = (
     <div className="min-w-0">
