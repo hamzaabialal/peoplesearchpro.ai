@@ -882,7 +882,7 @@ export const notifications: AppNotification[] = [
     body: "Commission COM-19 is approved and will move to payable.",
     at: "2026-08-21T12:00:00.000Z",
     read: true,
-    href: "/partner/commissions",
+    href: "/user/commissions",
   },
   {
     id: "n6",

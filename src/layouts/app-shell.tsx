@@ -4,7 +4,8 @@ import { Menu } from "@/components/ui/menu";
 import { Tooltip } from "@/components/ui/tooltip";
 import { UserAvatar } from "@/components/user-avatar";
 import { useCurrentUser, type CurrentUser } from "@/hooks/use-current-user";
-import { currentUser, notifications } from "@/lib/data/mock";
+import { TrialGate } from "@/features/app/trial-gate";
+import { currentUser, notifications, plans } from "@/lib/data/mock";
 import { cn } from "@/lib/utils";
 import {
   Bell,
@@ -35,7 +36,7 @@ const nav = [
   { href: "/app/people", label: "Saved People", icon: Users },
   { href: "/app/sources", label: "Data Sources", icon: Shield },
   { href: "/app/billing", label: "Billing", icon: CreditCard },
-  { href: "/partner", label: "Affiliate / Partner", icon: Handshake },
+  { href: "/user", label: "Affiliate / User", icon: Handshake },
   { href: "/app/settings", label: "Settings", icon: Settings },
   { href: "/app/help", label: "Help", icon: LifeBuoy },
 ];
@@ -100,7 +101,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <p className="text-[10px] uppercase tracking-[0.12em] text-faint">
                 Current plan
               </p>
-              <p className="mt-0.5 text-[13px]">{currentUser.planLabel}</p>
+              {user ? (
+                (() => {
+                  const plan = plans.find((p) => p.id === user.plan);
+                  return plan ? (
+                    <p className="mt-0.5 text-[13px]">{plan.name}</p>
+                  ) : (
+                    <p className="mt-0.5 text-[13px]">
+                      Trial — {user.trialLabel}
+                    </p>
+                  );
+                })()
+              ) : (
+                <p className="mt-0.5 text-[13px]">—</p>
+              )}
               <p className="text-[11px] text-muted">
                 {currentUser.creditsRemaining} credits remaining
               </p>
@@ -212,6 +226,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
         <main className="min-w-0 flex-1 p-4 md:p-6 lg:p-8">{children}</main>
       </div>
+      <TrialGate />
     </div>
   );
 }

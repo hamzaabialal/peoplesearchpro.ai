@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getAdminSession } from "@/lib/auth/server";
+import { referralLink, requestOrigin } from "@/lib/referrals";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const baseUrl = requestOrigin(request);
   const { searchParams } = new URL(request.url);
   const name = (searchParams.get("name") ?? "").trim().toLowerCase();
   const code = (searchParams.get("code") ?? "").trim().toLowerCase();
@@ -77,7 +79,7 @@ export async function GET(request: Request) {
       name: a.name,
       email: a.email,
       refCode: a.ref_code,
-      referralLink: `peoplesearchpro.ai/r/${a.ref_code}`,
+      referralLink: referralLink(a.ref_code as string, baseUrl),
       landingPage: a.landing_page,
       status: a.status,
       clicks: a.clicks,

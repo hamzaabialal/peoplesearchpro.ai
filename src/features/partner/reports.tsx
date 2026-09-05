@@ -4,9 +4,8 @@ import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { AreaSeries, BarSeries } from "@/components/ui/charts";
 import { Select } from "@/components/ui/select";
-import { partnerReportData } from "@/lib/data/mock";
 import { formatCurrency } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type TimePeriod = "today" | "last7days" | "last30days" | "thisMonth" | "lastMonth";
 
@@ -18,21 +17,48 @@ const timePeriods: Array<{ value: TimePeriod; label: string }> = [
   { value: "lastMonth", label: "Last Month" },
 ];
 
+type ReportData = {
+  leads: number;
+  conversations: number;
+  commission: number;
+  series: { period: string; leads: number; conversations: number; commission: number }[];
+};
+
 export function PartnerReports() {
   const [period, setPeriod] = useState<TimePeriod>("today");
+  const [data, setData] = useState<ReportData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const data = partnerReportData[period];
+  useEffect(() => {
+    setData(null);
+    fetch(`/api/partner/reports?period=${period}`)
+      .then(async (r) => {
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? "Failed to load");
+        return r.json();
+      })
+      .then(setData)
+      .catch((e) => setError(e.message));
+  }, [period]);
 
   const metrics = [
-    { k: "Leads received", v: String(data.leads) },
-    { k: "Conversations", v: String(data.conversations) },
-    { k: "Commission generated", v: formatCurrency(data.commission) },
+    { k: "Leads received", v: data ? String(data.leads) : "—" },
+    { k: "Conversations", v: data ? String(data.conversations) : "—" },
+    { k: "Commission generated", v: data ? formatCurrency(data.commission) : "—" },
   ];
+
+  if (error) {
+    return (
+      <div>
+        <PageHeader title="User reports" />
+        <p className="mt-8 text-[13px] text-danger">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div>
       <PageHeader
-        title="Partner reports"
+        title="User reports"
         subtitle="Performance metrics and commission tracking for your partnership activities."
         action={
           <div>
@@ -64,15 +90,15 @@ export function PartnerReports() {
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card className="p-5">
           <h2 className="text-[13px] font-medium">Leads over time</h2>
-          <AreaSeries data={partnerReportData.series} x="period" y="leads" />
+          <AreaSeries data={data?.series ?? []} x="period" y="leads" />
         </Card>
         <Card className="p-5">
           <h2 className="text-[13px] font-medium">Conversations</h2>
-          <AreaSeries data={partnerReportData.series} x="period" y="conversations" color="#3ddc97" />
+          <AreaSeries data={data?.series ?? []} x="period" y="conversations" color="#3ddc97" />
         </Card>
         <Card className="p-5 lg:col-span-2">
           <h2 className="text-[13px] font-medium">Commission generated</h2>
-          <BarSeries data={partnerReportData.series} x="period" y="commission" />
+          <BarSeries data={data?.series ?? []} x="period" y="commission" />
         </Card>
       </div>
     </div>

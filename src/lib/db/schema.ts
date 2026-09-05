@@ -308,6 +308,13 @@ export const signups = pgTable(
     role: text("role").notNull(),
     /** Optional avatar URL; when null the UI falls back to initials. */
     image: text("image"),
+    /**
+     * Plan id chosen via /app/billing → POST /api/billing/select-plan.
+     * Null until they pick one. See src/lib/trial.ts: after TRIAL_DAYS with
+     * no plan, /app access is locked to /app/billing + /app/settings.
+     */
+    plan: text("plan"),
+    planSelectedAt: timestamp("plan_selected_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -323,17 +330,38 @@ export const signups = pgTable(
 
 export const affiliates = pgTable("affiliates", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
-  /** Their login, if they have one. */
-  signupId: bigint("signup_id", { mode: "number" }).references(() => signups.id, {
-    onDelete: "set null",
-  }),
+  /**
+   * Their login. One affiliate row per signup account — `.unique()` is what
+   * lets `ensureAffiliate()` (src/lib/referrals.ts) safely auto-provision a
+   * row the first time any signup (customer or partner) opens /partner,
+   * without ever creating duplicates for the same account.
+   */
+  signupId: bigint("signup_id", { mode: "number" })
+    .references(() => signups.id, { onDelete: "set null" })
+    .unique(),
   name: text("name").notNull(),
   email: text("email").notNull(),
   refCode: text("ref_code").notNull().unique(),
   landingPage: text("landing_page"),
   status: affiliateStatus("status").notNull().default("active"),
   clicks: integer("clicks").notNull().default(0),
+  /** Free-text payout destination shown in Partner Settings (no real processor wired up). */
+  payoutMethod: text("payout_method"),
   joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/** One row per click on an affiliate's referral link — powers the "leads over
+ *  time" charts on the Partner Reports page. `affiliates.clicks` stays as a
+ *  fast running total; this table is the detailed, timestamped log. */
+export const referralClicks = pgTable("referral_clicks", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  affiliateId: bigint("affiliate_id", { mode: "number" })
+    .notNull()
+    .references(() => affiliates.id, { onDelete: "cascade" }),
+  refCode: text("ref_code").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -346,10 +374,13 @@ export const referrals = pgTable("referrals", {
     .references(() => affiliates.id, { onDelete: "cascade" }),
   /** Privacy-safe label shown in admin (not the real customer name). */
   customerLabel: text("customer_label").notNull(),
-  customerSignupId: bigint("customer_signup_id", { mode: "number" }).references(
-    () => signups.id,
-    { onDelete: "set null" },
-  ),
+  /**
+   * `.unique()` — a signup can be credited to at most one affiliate, ever.
+   * Prevents double-crediting the same referred account.
+   */
+  customerSignupId: bigint("customer_signup_id", { mode: "number" })
+    .references(() => signups.id, { onDelete: "set null" })
+    .unique(),
   plan: text("plan").notNull(),
   status: text("status").notNull(),
   commissionAmount: numeric("commission_amount", { precision: 12, scale: 2 })
@@ -376,6 +407,25 @@ export const commissions = pgTable("commissions", {
   status: commissionStatus("status").notNull().default("pending"),
   reversalReason: text("reversal_reason"),
   period: text("period"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const payoutStatus = pgEnum("payout_status", ["scheduled", "paid"]);
+
+/** A transfer of paid-out commission to an affiliate. No real payout
+ *  processor is wired up yet — these rows exist so the Payouts page reflects
+ *  real per-affiliate history instead of shared demo data. */
+export const payouts = pgTable("payouts", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  affiliateId: bigint("affiliate_id", { mode: "number" })
+    .notNull()
+    .references(() => affiliates.id, { onDelete: "cascade" }),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  status: payoutStatus("status").notNull().default("scheduled"),
+  method: text("method"),
+  date: timestamp("date", { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -445,8 +495,10 @@ export type Subscription = typeof subscriptions.$inferSelect;
 export type Signup = typeof signups.$inferSelect;
 export type NewSignup = typeof signups.$inferInsert;
 export type Affiliate = typeof affiliates.$inferSelect;
+export type ReferralClick = typeof referralClicks.$inferSelect;
 export type Referral = typeof referrals.$inferSelect;
 export type Commission = typeof commissions.$inferSelect;
+export type Payout = typeof payouts.$inferSelect;
 export type TrackedLead = typeof trackedLeads.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type Setting = typeof settings.$inferSelect;

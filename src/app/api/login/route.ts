@@ -1,6 +1,6 @@
 import { sql } from "@/lib/db";
 import { setSession } from "@/lib/auth/server";
-import type { SessionRole } from "@/lib/auth/session";
+import { resolveRole } from "@/lib/auth/roles";
 import { validateEmail } from "@/lib/validation/signup";
 import { validatePassword } from "@/lib/validation/login";
 import bcrypt from "bcryptjs";
@@ -50,7 +50,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
-    const role = (user.role as SessionRole) ?? "customer";
+    // Priority: hardcoded admin email first, then the role chosen at signup
+    // (customer/partner) — see resolveRole in src/lib/auth/roles.ts.
+    const role = resolveRole({ email: user.email, role: user.role });
     await setSession({
       sub: String(user.id),
       email: user.email,
